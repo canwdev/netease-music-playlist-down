@@ -1,0 +1,23 @@
+{
+ "name": "netease-music-playlist-down",
+ "version": "1.0.0",
+ "main": "index.js",
+ "repository": "https://gitee.com/canwdev/netease-music-playlist-down.git",
+ "author": "canwdev <c2097@live.com>",
+ "license": "MIT",
+ "private": true,
+ "scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js"
+ },
+ "dependencies": {
+  "axios": "^0.19.0",
+  "browser-id3-writer": "^4.3.0",
+  "sanitize-filename": "^1.6.3"
+ },
+ "nodemonConfig": {
+  "ignore": [
+   "dist/*"
+  ]
+ }
+}
