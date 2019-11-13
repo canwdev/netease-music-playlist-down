@@ -33,30 +33,50 @@ async function run() {
 
     // 开始批量下载
     console.log(`>>> 开始下载歌单，共 ${playlist.length} 首歌曲`)
+    const succeed = []
+    const errored = []
+
     for (let i = 0; i < playlist.length; i++) {
-      const index = padZero((i+1), (playlist.length).toString().length)
+      const index = padZero((i + 1), (playlist.length).toString().length)
+      const statusText = `[${index}/${playlist.length}] `
+
+      const song = playlist[i]
+      song._index = index
+      const {name, id, ar} = song
+      const saveName = formatArtist(ar, ', ') + ' - ' + name + '.mp3'
+      const songSavePath = path.join(distDir, sanitize(`${index}. ${saveName}`, {replacement: '_'}))
 
       try {
-        const song = playlist[i]
-        const {name, id} = song
+        if (fs.existsSync(songSavePath)) {
+          console.log(`>>> ${statusText}已存在同名文件，跳过（${songSavePath}）`)
+        } else {
 
-        // 获取下载地址
-        console.log(`>>> [${index}] 正在获取歌曲《${name}》信息，id=${id}`)
-        const downInfo = await getSongDownloadInfo(song.id)
+          // 获取下载地址
+          console.log(`>>> ${statusText}正在获取歌曲《${name}》信息，id=${id}`)
+          const downInfo = await getSongDownloadInfo(song.id)
 
-        // 下载
-        console.log('>>> 开始下载', downInfo.url)
-        const {buffer, saveName} = await getSongBufferWithTags(downInfo.url, song)
-        const songSavePath = path.join(distDir, sanitize(`${index}. ${saveName}`, {replacement: '_'}))
-        fs.writeFileSync(songSavePath, Buffer.from(buffer))
-        console.log('>>> 已下载', songSavePath)
+          // 下载
+          console.log('>>> 开始下载', downInfo.url)
+
+          const buffer = await getSongBufferWithTags(downInfo.url, song)
+          fs.writeFileSync(songSavePath, Buffer.from(buffer))
+          console.log('>>> 已下载', songSavePath)
+        }
+        succeed.push(song)
 
       } catch (e) {
-        console.log(`>>> [${index}] Error!`, e)
+        console.log(`>>> ${statusText}Error!`, e)
+        // 下载出错时，保存信息以便查看
+        fs.writeFileSync(songSavePath+'.errored.json', JSON.stringify(song), {encoding: 'utf8'})
+        errored.push(song)
       }
       // break
     }
-    console.log('>>> 执行结束！')
+    console.log(`>>> 执行结束！有 ${succeed.length} 个音乐下载成功，${errored.length} 个下载失败。下载失败的音乐为：`)
+    errored.forEach(song => {
+      const {_index, name, id} = song
+      console.log(`${_index}.《${name}》, id=${id}`)
+    })
 
   }).catch(e => {
     console.error('>>> 获取歌单失败！', e.message)
@@ -77,10 +97,10 @@ async function getSongDownloadInfo(id) {
 
     const available = musicAvailableRes.data
     const musicUrl = songUrlRes.data.data[0]
-    // console.log({
-    //   available,
-    //   musicUrl
-    // })
+    console.log({
+      available,
+      musicUrl
+    })
 
     if (!available.success) {
       console.error(available.message)
@@ -93,7 +113,7 @@ async function getSongDownloadInfo(id) {
 
     return musicUrl
   } catch (err) {
-    console.error(err)
+    console.error('[getSongDownloadInfo] Error!', err.message)
   }
 }
 
@@ -102,8 +122,6 @@ async function getSongDownloadInfo(id) {
  */
 async function getSongBufferWithTags(url, {id, name, ar}) {
   const artists = ar
-  const saveName = formatArtist(artists, ', ')
-    + ' - ' + name + '.mp3'
 
   try {
     const musicDetail = await axios.get(apiBaseUrl + '/song/detail?ids=' + id)
@@ -143,10 +161,10 @@ async function getSongBufferWithTags(url, {id, name, ar}) {
     // const blob = writer.getBlob();
     // const newUrl = writer.getURL();
 
-    return {buffer, saveName}
+    return buffer
 
   } catch (err) {
-    console.error('下载失败！', err.message)
+    console.error('[getSongBufferWithTags] Error!', err.message)
   }
 }
 
@@ -159,7 +177,7 @@ function formatArtist(arr, separator = ' / ') {
   return nameArr.join(separator)
 }
 
-function padZero(num, len=2) {
+function padZero(num, len = 2) {
   return num.toString().padStart(len, '0')
 }
 
