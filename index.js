@@ -9,7 +9,7 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 // https://binaryify.github.io/NeteaseCloudMusicApi
 const apiBaseUrl = 'https://zencode.top:9001'
 // 歌单 ID
-const playlistID = '385283496'
+const playlistID = '331398396'
 
 async function run() {
   axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistID}`).then(async res => {
@@ -23,7 +23,7 @@ async function run() {
     // 创建下载目录
     const distDir = path.join(__dirname, 'dist', sanitize(playlistName))
     if (!fs.existsSync(distDir)) {
-      fs.mkdirSync(distDir);
+      fs.mkdirSync(distDir, { recursive: true });
     }
 
     // 保存 meta 信息
@@ -97,10 +97,10 @@ async function getSongDownloadInfo(id) {
 
     const available = musicAvailableRes.data
     const musicUrl = songUrlRes.data.data[0]
-    console.log({
-      available,
-      musicUrl
-    })
+    // console.log({
+    //   available,
+    //   musicUrl
+    // })
 
     if (!available.success) {
       console.error(available.message)
