@@ -9,7 +9,7 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 // https://binaryify.github.io/NeteaseCloudMusicApi
 const apiBaseUrl = 'https://zencode.top:9001'
 // 歌单 ID
-const playlistID = '331398396'
+const playlistID = '3109143988'
 
 async function run() {
   axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistID}`).then(async res => {
