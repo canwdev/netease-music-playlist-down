@@ -10,6 +10,8 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 const apiBaseUrl = 'https://zencode.top:9001'
 // 歌单 ID
 const playlistID = '3109143988'
+// 是否在文件名添加序号
+const numbering = false
 
 async function run() {
   axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistID}`).then(async res => {
@@ -44,7 +46,8 @@ async function run() {
       song._index = index
       const {name, id, ar} = song
       const saveName = formatArtist(ar, ', ') + ' - ' + name + '.mp3'
-      const songSavePath = path.join(distDir, sanitize(`${index}. ${saveName}`, {replacement: '_'}))
+      const number = numbering ? `${index}. ` : ''
+      const songSavePath = path.join(distDir, sanitize(`${number}${saveName}`, {replacement: '_'}))
 
       try {
         if (fs.existsSync(songSavePath)) {
