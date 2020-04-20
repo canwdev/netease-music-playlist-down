@@ -10,14 +10,15 @@ const {
 
 /**
  * 创建下载文件夹和meta
+ * @param distDirName 下载目录名称
  * @param playlistName 歌单名称
  * @param data 歌单列表数据
  */
-function createDownloadDir(playlistName, data) {
+function createDownloadDir({distDirName = 'dist', playlistName, data}) {
   // 创建下载目录
-  const distDir = path.join(__dirname, 'dist', sanitize(playlistName))
+  const distDir = path.join(__dirname, distDirName, sanitize(playlistName))
   if (!fs.existsSync(distDir)) {
-    fs.mkdirSync(distDir, { recursive: true });
+    fs.mkdirSync(distDir, {recursive: true});
   }
 
   // 保存 meta 信息
@@ -31,7 +32,7 @@ function createDownloadDir(playlistName, data) {
 /**
  * 下载音乐为Buffer，填充ID3标签
  */
-async function getSongBufferWithTags(url, {id, name, ar}) {
+async function getSongBufferWithTags({downloadUrl, lrcUrl, writeTag = true, id, name, ar}) {
   const artists = ar
 
   try {
@@ -39,41 +40,63 @@ async function getSongBufferWithTags(url, {id, name, ar}) {
     const detail = musicDetail.data.songs[0]
     // console.log(detail)
 
-    const musicRes = await axios.get(url, {
+    const musicRes = await axios.get(downloadUrl, {
       responseType: 'arraybuffer'
     })
-    const arrayBuffer = musicRes.data
+    let arrayBuffer = musicRes.data
 
-    const writer = new ID3Writer(arrayBuffer);
-    writer.setFrame('TIT2', detail.name)  // song title
-      .setFrame('TPE1', formatArtist(artists, ';').split(';')) // song artists
-      .setFrame('TALB', detail.al.name) // album title
-      .setFrame('TYER', new Date(detail.publishTime).getFullYear()) // album release year
-      .setFrame('TRCK', detail.no)   // song number in album
-      .setFrame('TPOS', detail.cd)   // album disc number
-      .setFrame('TCON', [])   // song genres
-
+    let coverArrayBuffer
     if (detail.al.picUrl) {
       // 获取封面图
       const coverRes = await axios.get(detail.al.picUrl, {
         responseType: 'arraybuffer'
       })
-      const coverArrayBuffer = coverRes.data
-      writer.setFrame('APIC', {
-        type: 3,
-        data: coverArrayBuffer,
-        description: ''
-      })  // attached picture
+      coverArrayBuffer = coverRes.data
     }
 
-    writer.addTag();
+    if (writeTag) {
+      // 写入 ID3 标签
+      const writer = new ID3Writer(arrayBuffer);
+      writer.setFrame('TIT2', detail.name)  // song title
+        .setFrame('TPE1', formatArtist(artists, ';').split(';')) // song artists
+        .setFrame('TALB', detail.al.name) // album title
+        .setFrame('TYER', new Date(detail.publishTime).getFullYear()) // album release year
+        .setFrame('TRCK', detail.no)   // song number in album
+        .setFrame('TPOS', detail.cd)   // album disc number
+        .setFrame('TCON', [])   // song genres
 
-    const buffer = writer.arrayBuffer;
-    // const blob = writer.getBlob();
-    // const newUrl = writer.getURL();
+      if (coverArrayBuffer) {
+        writer.setFrame('APIC', {
+          type: 3,
+          data: coverArrayBuffer,
+          description: ''
+        })  // attached picture
+      }
 
-    return buffer
+      writer.addTag();
+      // const blob = writer.getBlob();
+      // const newUrl = writer.getURL();
+      arrayBuffer = writer.arrayBuffer;
+    } else {
+      // FLAC 格式不支持 ID3 标签
+    }
 
+    let lrcText
+    if (lrcUrl) {
+     const res = await axios.get(lrcUrl)
+     lrcText = res.data
+
+      if (lrcText.indexOf('暂无歌词') !== -1) {
+        lrcText = undefined
+      }
+    }
+
+    return {
+      songArrayBuffer: arrayBuffer,
+      coverArrayBuffer,
+      detail,
+      lrcText
+    }
   } catch (err) {
     console.error('[getSongBufferWithTags] Error!', err.message)
   }
@@ -83,18 +106,33 @@ function padZero(num, len = 2) {
   return num.toString().padStart(len, '0')
 }
 
-function formatArtist(arr, separator = ' / ') {
+function formatArtist(artists, separator = ' / ') {
+  if (typeof artists === 'string') {
+    return artists
+  }
   var nameArr = []
-  arr.forEach(v => {
+  artists.forEach(v => {
     nameArr.push(v.name)
   })
 
   return nameArr.join(separator)
 }
 
+/**
+ * 替换文件后缀名
+ * @param oPath "Wisp X - Shatter.flac"
+ * @param extension "lrc"
+ * return "Wisp X - Shatter.lrc"
+ */
+function replaceFileExtension(oPath, extension) {
+  oPath = oPath.substring(0, oPath.lastIndexOf('.')+1)
+  return oPath + extension
+}
+
 module.exports = {
   createDownloadDir,
   getSongBufferWithTags,
   padZero,
-  formatArtist
+  formatArtist,
+  replaceFileExtension
 }
