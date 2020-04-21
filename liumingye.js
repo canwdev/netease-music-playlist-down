@@ -59,7 +59,7 @@ async function run() {
 
   const distDir = createDownloadDir({
     distDirName: 'dist/@liuminye',
-    playlistName: playlistName || 'undefined_' + Date.now(),
+    playlistName: playlistID + '_' + playlistName || 'undefined_' + Date.now(),
     data
   })
   fs.writeFileSync(path.join(distDir, 'playlist.json'), JSON.stringify(playlistData), {

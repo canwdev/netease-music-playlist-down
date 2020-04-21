@@ -39,7 +39,10 @@ async function run() {
     console.log(`歌单获取成功！《${playlistName}》`)
 
     // 创建下载文件夹和meta
-    const distDir = createDownloadDir({playlistName, data})
+    const distDir = createDownloadDir({
+      playlistName: playlistID + '_' + playlistName,
+      data
+    })
 
     // 开始批量下载
     console.log(`开始下载歌单，共 ${playlist.length} 首歌曲`)
