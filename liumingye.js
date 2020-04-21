@@ -47,10 +47,11 @@ async function run() {
 
   process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
-  let playlistName
+  let playlistData, playlistName
   try {
     const res = await axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistID}`)
-    playlistName = res.data.playlist.name
+    playlistData = res.data
+    playlistName = playlistData.playlist.name
     console.log(`歌单获取成功！《${playlistName}》`)
   } catch (e) {
     console.error('获取歌单信息失败！', e.message)
@@ -60,6 +61,9 @@ async function run() {
     distDirName: 'dist/@liuminye',
     playlistName: playlistName || 'undefined_' + Date.now(),
     data
+  })
+  fs.writeFileSync(path.join(distDir, 'playlist.json'), JSON.stringify(playlistData), {
+    encoding: 'utf8'
   })
 
   const playlist = data.data.list
