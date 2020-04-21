@@ -1,8 +1,8 @@
 /*
 基于 http://tool.liumingye.cn/music/ 开发
+配合插件使用更佳：https://greasyfork.org/zh-CN/scripts/400423-qq%E7%BD%91%E6%98%93%E4%BA%91%E9%9F%B3%E4%B9%90%E4%BB%98%E8%B4%B9%E6%97%A0%E6%8D%9F%E9%9F%B3%E4%B9%90%E5%85%8D%E8%B4%B9%E4%B8%8B%E8%BD%BD
  */
 const axios = require('axios')
-
 const path = require('path')
 const fs = require('fs')
 var sanitize = require("sanitize-filename");
@@ -12,24 +12,46 @@ const {
   padZero,
   formatArtist,
   getSongBufferWithTags,
-  replaceFileExtension
+  replaceFileExtension,
+  inquireConfigFile,
+  inquireYesOrNo,
+  inquireInputString,
+  parseNcmPlaylistId
 } = require("./utils")
 
-const data = require('./liumingye-music-data.json')
-const tryFlac = false // 尝试下载 FLAC，注意：可能无法分辨 MP3 格式！
-const {
+let {
   apiBaseUrl,
   playlistID,
   numbering,
 } = require('./config')
 
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
-
 async function run() {
+  console.log('欢迎使用 liumingye-api 下载脚本！')
+
+  const urlOrId = await inquireInputString('请输入网易云音乐歌单链接或id', playlistID)
+  if (!urlOrId) {
+    console.log('退出')
+    return
+  }
+  playlistID = parseNcmPlaylistId(urlOrId)
+
+
+  const configFilePath = await inquireConfigFile(
+    '请选择一个 data 文件，可以从 http://tool.liumingye.cn/music/ F12控制台网络面板复制',
+    path.join(__dirname, './liumingye-config')
+  )
+
+  const data = require(configFilePath)
+  const tryFlac = await inquireYesOrNo('要尝试下载 FLAC 吗？注意：可能无法分辨 MP3 格式！')
+
+
+  process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
+
   let playlistName
   try {
     const res = await axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistID}`)
     playlistName = res.data.playlist.name
+    console.log(`歌单获取成功！《${playlistName}》`)
   } catch (e) {
     console.error('获取歌单信息失败！', e.message)
   }
@@ -60,7 +82,7 @@ async function run() {
 
     // 获取下载地址
     console.log(`${statusText}歌曲《${name}》，id=${id}`)
-    const {extension, downloadUrl, lrcUrl} = extractDownloadInfo(song)
+    const {extension, downloadUrl, lrcUrl} = extractDownloadInfo(song, tryFlac)
 
     const saveName = formatArtist(ar, ', ') + ' - ' + name + '.' + extension
     const number = numbering ? `${index}. ` : ''
@@ -122,7 +144,7 @@ async function run() {
 
 run()
 
-function extractDownloadInfo(song) {
+function extractDownloadInfo(song, tryFlac) {
   let extension = 'mp3', downloadUrl
 
   if (tryFlac && song.url_flac) {

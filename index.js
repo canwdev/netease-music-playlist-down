@@ -7,10 +7,12 @@ const {
   createDownloadDir,
   getSongBufferWithTags,
   padZero,
-  formatArtist
+  formatArtist,
+  inquireInputString,
+  parseNcmPlaylistId,
 } = require('./utils')
 
-const {
+let {
   apiBaseUrl,
   playlistID,
   numbering,
@@ -19,13 +21,22 @@ const {
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
 async function run() {
+  console.log('欢迎使用网易云音乐下载脚本！')
+
+  const urlOrId = await inquireInputString('请输入网易云音乐歌单链接或id', playlistID)
+  if (!urlOrId) {
+    console.log('退出')
+    return
+  }
+  playlistID = parseNcmPlaylistId(urlOrId)
+
   axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistID}`).then(async res => {
     const data = res.data
 
     // 歌单名称
     const playlistName = data.playlist.name
     const playlist = data.playlist.tracks
-    console.log('歌单获取成功！', playlistName)
+    console.log(`歌单获取成功！《${playlistName}》`)
 
     // 创建下载文件夹和meta
     const distDir = createDownloadDir({playlistName, data})

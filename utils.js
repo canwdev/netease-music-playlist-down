@@ -3,6 +3,8 @@ const path = require('path')
 const fs = require('fs')
 const ID3Writer = require('browser-id3-writer');
 var sanitize = require("sanitize-filename");
+const inquirer = require("inquirer")
+
 
 const {
   apiBaseUrl
@@ -83,8 +85,8 @@ async function getSongBufferWithTags({downloadUrl, lrcUrl, writeTag = true, id, 
 
     let lrcText
     if (lrcUrl) {
-     const res = await axios.get(lrcUrl)
-     lrcText = res.data
+      const res = await axios.get(lrcUrl)
+      lrcText = res.data
 
       if (lrcText.indexOf('暂无歌词') !== -1) {
         lrcText = undefined
@@ -125,8 +127,87 @@ function formatArtist(artists, separator = ' / ') {
  * return "Wisp X - Shatter.lrc"
  */
 function replaceFileExtension(oPath, extension) {
-  oPath = oPath.substring(0, oPath.lastIndexOf('.')+1)
+  oPath = oPath.substring(0, oPath.lastIndexOf('.') + 1)
   return oPath + extension
+}
+
+
+/**
+ * 选择配置文件
+ * @param message
+ * @param baseDir
+ * @returns {Promise<string>}
+ */
+async function inquireConfigFile(message = '选择一个配置文件', baseDir) {
+  const files = fs.readdirSync(baseDir, {withFileTypes: true}).filter(dirent => dirent.isFile())
+    .map(dirent => dirent.name)
+
+  const answers = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'configFile',
+      message,
+      choices: files,
+    }
+  ])
+
+  return path.join(baseDir, answers.configFile)
+}
+
+/**
+ * 询问是否
+ * @param message
+ * @param defaultResult
+ * @returns {Promise<*>}
+ */
+async function inquireYesOrNo(message = "确定？", defaultResult = false) {
+  const answers = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'yesOrNo',
+      message: message,
+      default: defaultResult
+    }
+  ])
+  return answers.yesOrNo
+}
+
+async function inquireInputString(message = '请输入：', defaultResult = '') {
+  const answers = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'string',
+      message: message,
+      default: defaultResult
+    }
+  ])
+  return answers.string
+}
+
+/**
+ * 获取url query 对象
+ * @param url
+ */
+function parseUrlQuery(url) {
+  if (typeof url !== "string") return;
+  var obj = {};
+  url.split("?")[1].split("&").forEach(item => {
+    var arr = [key, value] = item.split("=")
+    obj[arr[0]] = arr[1];
+  })
+  return obj
+}
+
+function parseNcmPlaylistId(urlOrId) {
+  var id = Number(urlOrId)
+
+  if (!Number.isNaN(id)) {
+    return id
+  }
+
+  var obj = parseUrlQuery(urlOrId)
+
+  return obj.id
 }
 
 module.exports = {
@@ -134,5 +215,10 @@ module.exports = {
   getSongBufferWithTags,
   padZero,
   formatArtist,
-  replaceFileExtension
+  replaceFileExtension,
+  inquireConfigFile,
+  inquireYesOrNo,
+  inquireInputString,
+  parseUrlQuery,
+  parseNcmPlaylistId
 }
