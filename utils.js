@@ -210,6 +210,13 @@ function parseNcmPlaylistId(urlOrId) {
   return obj.id
 }
 
+function doSleep(time = 300) {
+  console.log('休息一下~ ', time)
+  return new Promise(resolve => {
+    setTimeout(resolve, time)
+  })
+}
+
 module.exports = {
   createDownloadDir,
   getSongBufferWithTags,
@@ -220,5 +227,6 @@ module.exports = {
   inquireYesOrNo,
   inquireInputString,
   parseUrlQuery,
-  parseNcmPlaylistId
+  parseNcmPlaylistId,
+  doSleep
 }

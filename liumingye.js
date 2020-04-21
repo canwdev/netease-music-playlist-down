@@ -16,7 +16,8 @@ const {
   inquireConfigFile,
   inquireYesOrNo,
   inquireInputString,
-  parseNcmPlaylistId
+  parseNcmPlaylistId,
+  doSleep
 } = require("./utils")
 
 let {
@@ -85,7 +86,7 @@ async function run() {
     const {name, artist: ar} = song
 
     // 获取下载地址
-    console.log(`${statusText}歌曲《${name}》，id=${id}`)
+    
     const {extension, downloadUrl, lrcUrl} = extractDownloadInfo(song, tryFlac)
 
     const saveName = formatArtist(ar, ', ') + ' - ' + name + '.' + extension
@@ -94,10 +95,12 @@ async function run() {
 
     try {
       if (fs.existsSync(songSavePath)) {
-        console.log(`${statusText}已存在同名文件，跳过（${songSavePath}）`)
+        fs.unlinkSync(songSavePath + '.errored.json')
+        // console.log(`${statusText}已存在同名文件，跳过（${songSavePath}）`)
       } else {
 
         // 下载
+        console.log(`${statusText}歌曲《${name}》，id=${id}`)
         console.log('开始下载', downloadUrl)
         const {
           songArrayBuffer: buffer,
@@ -111,7 +114,7 @@ async function run() {
           id, name, ar
         })
         fs.writeFileSync(songSavePath, Buffer.from(buffer))
-
+          
         // 保存封面
         tryFlac && fs.writeFileSync(replaceFileExtension(songSavePath, 'jpg'), Buffer.from(coverArrayBuffer))
 
@@ -121,13 +124,13 @@ async function run() {
         // 保存歌词
         lrcText && fs.writeFileSync(replaceFileExtension(songSavePath, 'lrc'), lrcText)
 
-
         console.log('已下载', songSavePath)
+        await doSleep()
       }
       succeed.push(song)
 
     } catch (e) {
-      console.log(`${statusText}Error!`, e)
+      console.log(`${statusText}Error!`, e.message)
       // 下载出错时，保存信息以便查看
       fs.writeFileSync(songSavePath + '.errored.json', JSON.stringify(song), {encoding: 'utf8'})
       errored.push(song)
