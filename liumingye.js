@@ -16,7 +16,7 @@ const {
 } = require("./utils")
 
 const data = require('./liumingye-music-data.json')
-const tryFlac = true // 尝试下载 FLAC，注意：可能无法分辨 MP3 格式！
+const tryFlac = false // 尝试下载 FLAC，注意：可能无法分辨 MP3 格式！
 const {
   apiBaseUrl,
   playlistID,
@@ -42,6 +42,11 @@ async function run() {
 
   const playlist = data.data.list
 
+  // 开始批量下载
+  console.log(`开始下载歌单，共 ${playlist.length} 首歌曲`)
+  const succeed = []
+  const errored = []
+
   for (let i = 0; i < playlist.length; i++) {
     const index = padZero((i + 1), (playlist.length).toString().length)
     const statusText = `[${index}/${playlist.length}] `
@@ -50,10 +55,11 @@ async function run() {
 
     // 获取id
     const id = song.lrc.substring(song.lrc.lastIndexOf('/') + 1)
+    song.id = id
     const {name, artist: ar} = song
 
     // 获取下载地址
-    console.log(`${statusText}正在获取歌曲《${name}》信息，id=${id}`)
+    console.log(`${statusText}歌曲《${name}》，id=${id}`)
     const {extension, downloadUrl, lrcUrl} = extractDownloadInfo(song)
 
     const saveName = formatArtist(ar, ', ') + ' - ' + name + '.' + extension
@@ -92,14 +98,25 @@ async function run() {
 
         console.log('已下载', songSavePath)
       }
+      succeed.push(song)
 
     } catch (e) {
       console.log(`${statusText}Error!`, e)
       // 下载出错时，保存信息以便查看
       fs.writeFileSync(songSavePath + '.errored.json', JSON.stringify(song), {encoding: 'utf8'})
-
+      errored.push(song)
       debugger
     }
+  }
+
+  console.log(`执行结束！有 ${succeed.length} 个音乐下载成功。`)
+
+  if (errored.length > 0) {
+    console.log(`${errored.length} 个音乐下载失败：`)
+    errored.forEach(song => {
+      const {_index, name, id} = song
+      console.log(`${_index}.《${name}》, id=${id}`)
+    })
   }
 }
 
