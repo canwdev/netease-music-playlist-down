@@ -96,9 +96,7 @@ async function run() {
 
     try {
       if (fs.existsSync(songSavePath)) {
-        if (fs.existsSync(songErroredPath)) {
-          fs.unlinkSync(songErroredPath)
-        }
+        if (fs.existsSync(songErroredPath)) fs.unlinkSync(songErroredPath)
         // console.log(`${statusText}已存在同名文件，跳过（${songSavePath}）`)
       } else {
 
@@ -117,7 +115,8 @@ async function run() {
           id, name, ar
         })
         fs.writeFileSync(songSavePath, Buffer.from(buffer))
-
+        if (fs.existsSync(songErroredPath)) fs.unlinkSync(songErroredPath)
+        
         // 保存封面
         tryFlac && fs.writeFileSync(replaceFileExtension(songSavePath, 'jpg'), Buffer.from(coverArrayBuffer))
 
