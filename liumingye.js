@@ -86,16 +86,19 @@ async function run() {
     const {name, artist: ar} = song
 
     // 获取下载地址
-    
+
     const {extension, downloadUrl, lrcUrl} = extractDownloadInfo(song, tryFlac)
 
     const saveName = formatArtist(ar, ', ') + ' - ' + name + '.' + extension
     const number = numbering ? `${index}. ` : ''
     const songSavePath = path.join(distDir, sanitize(`${number}${saveName}`, {replacement: '_'}))
+    const songErroredPath = songSavePath + '.errored.json'
 
     try {
       if (fs.existsSync(songSavePath)) {
-        fs.unlinkSync(songSavePath + '.errored.json')
+        if (fs.existsSync(songErroredPath)) {
+          fs.unlinkSync(songErroredPath)
+        }
         // console.log(`${statusText}已存在同名文件，跳过（${songSavePath}）`)
       } else {
 
@@ -114,7 +117,7 @@ async function run() {
           id, name, ar
         })
         fs.writeFileSync(songSavePath, Buffer.from(buffer))
-          
+
         // 保存封面
         tryFlac && fs.writeFileSync(replaceFileExtension(songSavePath, 'jpg'), Buffer.from(coverArrayBuffer))
 
@@ -132,8 +135,8 @@ async function run() {
     } catch (e) {
       console.log(`${statusText}Error!`, e.message)
       // 下载出错时，保存信息以便查看
-      fs.writeFileSync(songSavePath + '.errored.json', JSON.stringify(song), {encoding: 'utf8'})
-      errored.push(song)
+      fs.writeFileSync(songErroredPath, JSON.stringify(song), {encoding: 'utf8'})
+       errored.push(song)
       debugger
     }
   }

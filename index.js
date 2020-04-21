@@ -59,10 +59,14 @@ async function run() {
       const saveName = formatArtist(ar, ', ') + ' - ' + name + '.mp3'
       const number = numbering ? `${index}. ` : ''
       const songSavePath = path.join(distDir, sanitize(`${number}${saveName}`, {replacement: '_'}))
+      const songErroredPath = songSavePath + '.errored.json'
 
       try {
         if (fs.existsSync(songSavePath)) {
-          console.log(`${statusText}已存在同名文件，跳过（${songSavePath}）`)
+          if (fs.existsSync(songErroredPath)) {
+            fs.unlinkSync(songErroredPath)
+          }
+          // console.log(`${statusText}已存在同名文件，跳过（${songSavePath}）`)
         } else {
 
           // 获取下载地址
@@ -86,7 +90,7 @@ async function run() {
       } catch (e) {
         console.log(`${statusText}Error!`, e)
         // 下载出错时，保存信息以便查看
-        fs.writeFileSync(songSavePath + '.errored.json', JSON.stringify(song), {encoding: 'utf8'})
+        fs.writeFileSync(songErroredPath, JSON.stringify(song), {encoding: 'utf8'})
         errored.push(song)
       }
       // break
