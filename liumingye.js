@@ -48,14 +48,16 @@ async function run() {
 
   process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
-  let playlistData, playlistName
+  let playlistData, playlistName, tracks
   try {
     const res = await axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistID}`)
     playlistData = res.data
     playlistName = playlistData.playlist.name
+    tracks = playlistData.playlist.tracks
     console.log(`歌单获取成功！《${playlistName}》`)
   } catch (e) {
     console.error('获取歌单信息失败！', e.message)
+    return
   }
 
   const distDir = createDownloadDir({
@@ -80,8 +82,10 @@ async function run() {
     const song = playlist[i]
     song._index = index
 
-    // 获取id
-    const id = song.lrc.substring(song.lrc.lastIndexOf('/') + 1)
+    // 旧版接口获取id
+    // const id = song.lrc.substring(song.lrc.lastIndexOf('/') + 1)
+    // 新版获取id
+    const id = tracks[i].id
     song.id = id
     const {name, artist: ar} = song
 
@@ -116,7 +120,7 @@ async function run() {
         })
         fs.writeFileSync(songSavePath, Buffer.from(buffer))
         if (fs.existsSync(songErroredPath)) fs.unlinkSync(songErroredPath)
-        
+
         // 保存封面
         tryFlac && fs.writeFileSync(replaceFileExtension(songSavePath, 'jpg'), Buffer.from(coverArrayBuffer))
 
