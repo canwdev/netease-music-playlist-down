@@ -1,10 +1,11 @@
 /**
  * 自动整理网易云音乐下载的歌曲
+ * 根据歌单序号自动排序
  */
 const config = {
   fromDir: 'D:\\CloudMusic\\', // 网易云音乐PC客户端下载文件夹
   toDir: 'D:\\CloudMusicArranged\\', // 目标文件夹
-  playlistID: '36283027' // 从 https://github.com/Binaryify/NeteaseCloudMusicApi 获取的歌单详情json
+  playlistID: '4978272073' // 歌单ID，从 https://github.com/Binaryify/NeteaseCloudMusicApi 获取的歌单详情json
 }
 const {apiBaseUrl} = require('./config')
 
