@@ -1,5 +1,5 @@
 /*
-基于 http://tool.liumingye.cn/music/ 开发
+从 http://tool.liumingye.cn/music/ 的接口下载歌单
 配合插件使用更佳：https://greasyfork.org/zh-CN/scripts/400423-qq%E7%BD%91%E6%98%93%E4%BA%91%E9%9F%B3%E4%B9%90%E4%BB%98%E8%B4%B9%E6%97%A0%E6%8D%9F%E9%9F%B3%E4%B9%90%E5%85%8D%E8%B4%B9%E4%B8%8B%E8%BD%BD
  */
 const axios = require('axios')

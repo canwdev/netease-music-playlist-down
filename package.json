@@ -21,5 +21,8 @@
   "ignore": [
    "dist/*"
   ]
+ },
+ "devDependencies": {
+  "shelljs": "^0.8.4"
  }
 }
