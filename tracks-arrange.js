@@ -12,6 +12,7 @@ const fs = require('fs')
 const path = require('path')
 const shell = require('shelljs')
 const axios = require('axios')
+const {inquireYesOrNo} = require('./utils')
 
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
@@ -80,6 +81,9 @@ async function arrangeFile(tracks) {
     name = name
       .replace(/\.$/, '') // 去除最后的 `.`
       .replace(/\?/g, '？')
+      .replace(/:/g, '：')
+      .replace(/"/g, '＂')
+      .replace(/\//g, '／')
       .replace(/\)|\(/g, matched => '\\' + matched)
       .trim()
 
@@ -100,8 +104,8 @@ async function arrangeFile(tracks) {
       sArtists = sArtists.trim()
       sName = sName.trim()
 
-      // for debug
-      /*if (i == 184) {
+      // 匹配失败可根据此线索查找问题
+      /*if (i == 67) {
         console.log(`【${name}】`, sName, new RegExp(`${name}$`).test(sName))
         console.log(`【${artist}】`, sArtists, new RegExp(`^${artist}`).test(sArtists))
         console.log('---')
@@ -117,8 +121,8 @@ async function arrangeFile(tracks) {
     const targetName = `${num}. ${fromName}`
 
     if (!fromName) {
-      const failedName = `${num}. ${ar.map(item => item.name).join(',')} - ${name}`
-      console.log(`歌曲匹配失败(i=${i})：${failedName}`)
+      const failedName = `【i=${i}】${num}. ${ar.map(item => item.name).join(',')} - ${name}`
+      console.log(`歌曲匹配失败：${failedName}`)
       copyFailedItems.push(failedName)
       debugger
     } else {
@@ -137,10 +141,19 @@ async function arrangeFile(tracks) {
 
   console.log('----------------------')
   if (copyFailedItems.length > 0) {
-    console.log(`警告：有 ${copyFailedItems.length} 个匹配失败：`)
+    console.log(`警告：有 ${copyFailedItems.length} 个匹配失败，请尝试手动复制或修改源码 :)`)
     console.log(copyFailedItems)
   } else {
     console.log(`全部歌曲复制成功！`)
+    let isDelete = await inquireYesOrNo(`要删除 ${config.fromDir} 里的原文件吗？`)
+    if (isDelete) {
+      isDelete = await inquireYesOrNo(`再次确认是否要删除？此操作不可撤销，删除前请退出网易云音乐`)
+      // console.log(Object.keys(copiedFiles))
+      isDelete && shell.rm(Object.keys(copiedFiles))
+    }
+    if (!isDelete) {
+      console.log('没有删除')
+    }
   }
 }
 
@@ -150,6 +163,8 @@ async function main() {
   await initFS(data)
 
   await arrangeFile(tracks)
+
+  console.log('Bye.')
 }
 
 main()
