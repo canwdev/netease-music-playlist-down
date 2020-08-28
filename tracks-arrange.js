@@ -15,7 +15,8 @@ const axios = require('axios')
 
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
-const metaDataPath = path.join(config.toDir, 'index.json')
+const distDir = path.join(config.toDir, config.playlistID)
+const metaDataPath = path.join(distDir, 'index.json')
 
 async function getPlaylistTracks() {
   // 如果已保存元数据，则不请求接口
@@ -51,8 +52,8 @@ async function getPlaylistTracks() {
 }
 
 async function initFS(data) {
-  if (!fs.existsSync(config.toDir)) {
-    shell.mkdir('-p', config.toDir)
+  if (!fs.existsSync(distDir)) {
+    shell.mkdir('-p', distDir)
   }
 
   // 保存 meta 信息
@@ -64,13 +65,14 @@ async function initFS(data) {
 }
 
 async function arrangeFile(tracks) {
-  console.log(`源目录：${config.fromDir}\n目标目录：${config.toDir}\n开始操作...`)
+  console.log(`源目录：${config.fromDir}\n目标目录：${distDir}\n开始操作...`)
   const copiedFiles = {}
+  const copyFailedItems = []
 
   shell.cd(config.fromDir)
   const files = shell.ls()
 
-  for (const i in tracks) {
+  for (let i = 0; i < tracks.length; i++) {
     const num = Number(i) + 1
     let {name, ar} = tracks[i]
     let {name: artist} = ar[0]
@@ -98,7 +100,8 @@ async function arrangeFile(tracks) {
       sArtists = sArtists.trim()
       sName = sName.trim()
 
-      /*if (i == 184) { // for debug
+      // for debug
+      /*if (i == 184) {
         console.log(`【${name}】`, sName, new RegExp(`${name}$`).test(sName))
         console.log(`【${artist}】`, sArtists, new RegExp(`^${artist}`).test(sArtists))
         console.log('---')
@@ -114,19 +117,30 @@ async function arrangeFile(tracks) {
     const targetName = `${num}. ${fromName}`
 
     if (!fromName) {
-      console.error(`歌曲匹配失败(i=${i})：\n${artist}\n${name}`)
+      const failedName = `${num}. ${ar.map(item => item.name).join(',')} - ${name}`
+      console.log(`歌曲匹配失败(i=${i})：${failedName}`)
+      copyFailedItems.push(failedName)
       debugger
-      break
+    } else {
+      copiedFiles[fromName] = true
+      const targetPath = path.join(distDir, targetName)
+      if (!fs.existsSync(targetPath)) {
+        console.log(`复制：【${fromName}】 -> 【${targetName}】`)
+        shell.cp(path.join(config.fromDir, fromName), targetPath)
+      } else {
+        console.log(`跳过：【${fromName}】 -> 【${targetName}】`)
+      }
     }
 
-    copiedFiles[fromName] = true
-    const targetPath = path.join(config.toDir, targetName)
-    if (!fs.existsSync(targetPath)) {
-      console.log(`复制：【${fromName}】 -> 【${targetName}】`)
-      shell.cp(path.join(config.fromDir, fromName), targetPath)
-    } else {
-      console.log(`跳过：【${fromName}】 -> 【${targetName}】`)
-    }
+
+  }
+
+  console.log('----------------------')
+  if (copyFailedItems.length > 0) {
+    console.log(`警告：有 ${copyFailedItems.length} 个匹配失败：`)
+    console.log(copyFailedItems)
+  } else {
+    console.log(`全部歌曲复制成功！`)
   }
 }
 
@@ -136,8 +150,6 @@ async function main() {
   await initFS(data)
 
   await arrangeFile(tracks)
-
-  console.log('执行结束')
 }
 
 main()
