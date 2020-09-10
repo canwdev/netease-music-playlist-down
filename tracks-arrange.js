@@ -90,6 +90,7 @@ async function arrangeFile(tracks) {
 
     artist = artist.trim()
 
+
     // 简单匹配歌曲名，item 格式如 `Молчат Дома - Тоска.mp3`
     const filteredFiles = files.filter(item => {
       // 如果已复制则不选中，避免重复
@@ -99,23 +100,31 @@ async function arrangeFile(tracks) {
 
       // 去除后缀
       item = item.slice(0, item.lastIndexOf('.'))
-      // 分割歌手名与歌曲名
-      let [sArtists, sName] = item.split(/ - (.+)/) // 仅拆分第一个 ` - `
 
-      sArtists = sArtists.trim()
-      sName = sName.trim()
+      try {
 
-      // 匹配失败可根据此线索查找问题
-      /*if (i == 67) {
-        console.log(`【${name}】`, sName, new RegExp(`${name}$`).test(sName))
-        console.log(`【${artist}】`, sArtists, new RegExp(`^${artist}`).test(sArtists))
-        console.log('---')
-      }*/
+        // 分割歌手名与歌曲名
+        let [sArtists, sName] = item.split(/ - (.+)/) // 仅拆分第一个 ` - `
 
-      return (
-        new RegExp(`${name}$`).test(sName) // 歌曲名匹配
-        && new RegExp(`^${artist}`).test(sArtists) // 第一位歌手匹配
-      )
+        sArtists = sArtists.trim()
+        sName = sName.trim()
+
+        // 匹配失败可根据此线索查找问题
+        /*if (i == 67) {
+          console.log(`【${name}】`, sName, new RegExp(`${name}$`).test(sName))
+          console.log(`【${artist}】`, sArtists, new RegExp(`^${artist}`).test(sArtists))
+          console.log('---')
+        }*/
+
+        return (
+          new RegExp(`${name}$`).test(sName) // 歌曲名匹配
+          && new RegExp(`^${artist}`).test(sArtists) // 第一位歌手匹配
+        )
+      } catch (e) {
+        console.log(`WARNING: ${e.message} 【${item}】`)
+        return false
+      }
+
     })
 
     const fromName = filteredFiles[0]
