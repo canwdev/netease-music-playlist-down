@@ -3,9 +3,9 @@
  * 根据歌单序号自动排序
  */
 const config = {
-  fromDir: 'D:\\CloudMusic\\', // 网易云音乐PC客户端下载文件夹
-  toDir: 'D:\\CloudMusicArranged\\', // 目标文件夹
-  playlistID: '4978272073' // 歌单ID，从 https://github.com/Binaryify/NeteaseCloudMusicApi 获取的歌单详情json
+  fromDir: '/home/can/Downloads/Music/', // 网易云音乐PC客户端下载文件夹
+  toDir: '/home/can/Downloads/MusicArranged/', // 目标文件夹
+  playlistID: '2387998356' // 歌单ID，从 https://github.com/Binaryify/NeteaseCloudMusicApi 获取的歌单详情json
 }
 const {apiBaseUrl} = require('./config')
 
@@ -13,7 +13,7 @@ const fs = require('fs')
 const path = require('path')
 const shell = require('shelljs')
 const axios = require('axios')
-const {inquireYesOrNo} = require('./utils')
+const {inquireYesOrNo, padZero} = require('./utils')
 
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
@@ -128,7 +128,8 @@ async function arrangeFile(tracks) {
     })
 
     const fromName = filteredFiles[0]
-    const targetName = `${num}. ${fromName}`
+    const index = padZero((i + 1), (tracks.length).toString().length)
+    const targetName = `${index}. ${fromName}`
 
     if (!fromName) {
       const failedName = `【i=${i}】${num}. ${ar.map(item => item.name).join(',')} - ${name}`
