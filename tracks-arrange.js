@@ -158,13 +158,6 @@ async function arrangeFile(tracks) {
   if (copyFailedItems.length > 0) {
     console.log(`警告：有 ${copyFailedItems.length} 个匹配失败，请尝试手动复制或修改源码 :)`)
     console.log(copyFailedItems)
-
-    const erroredFile = path.join(distDir, 'errored.json')
-    fs.writeFileSync(erroredFile, JSON.stringify(copyFailedItems, null, 2), {
-      encoding: 'utf8'
-    })
-    console.log(`失败文件列表已保存至`, erroredFile)
-
   } else {
     console.log(`全部歌曲复制成功！`)
   }
@@ -176,6 +169,15 @@ async function arrangeFile(tracks) {
       isDelete = await inquireYesOrNo(`再次确认是否要删除？此操作不可撤销，删除前请退出云音乐客户端以免删除失败。`)
       // console.log(Object.keys(copiedFiles))
       isDelete && shell.rm(Object.keys(copiedFiles))
+
+      if (copyFailedItems.length > 0) {
+        // 防止重复运行找不到错误的列表，将列表保存至文件
+        const erroredFile = path.join(distDir, 'errored.json')
+        fs.writeFileSync(erroredFile, JSON.stringify(copyFailedItems, null, 2), {
+          encoding: 'utf8'
+        })
+        console.log(`失败文件列表已保存至`, erroredFile)
+      }
     }
     if (!isDelete) {
       console.log('没有删除')
