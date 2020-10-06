@@ -17,6 +17,7 @@ const {inquireYesOrNo, padZero} = require('./utils')
 
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
+const verbose = false
 const distDir = path.join(config.toDir, config.playlistID)
 const metaDataPath = path.join(distDir, 'index.json')
 
@@ -69,6 +70,7 @@ async function initFS(data) {
 async function arrangeFile(tracks) {
   console.log(`源目录：${config.fromDir}\n目标目录：${distDir}\n开始操作...`)
   const copiedFiles = {}
+  const copySucceedItems = []
   const copyFailedItems = []
 
   shell.cd(config.fromDir)
@@ -121,7 +123,7 @@ async function arrangeFile(tracks) {
           && new RegExp(`^${artist}`).test(sArtists) // 第一位歌手匹配
         )
       } catch (e) {
-        console.log(`WARNING: ${e.message} 【${item}】`)
+        verbose && console.log(`WARNING: ${e.message} 【${item}】`)
         return false
       }
 
@@ -132,7 +134,7 @@ async function arrangeFile(tracks) {
     const targetName = `${index}. ${fromName}`
 
     if (!fromName) {
-      const failedName = `【i=${i}】${num}. ${ar.map(item => item.name).join(',')} - ${name}`
+      const failedName = `【i=${i}】${index}. ${ar.map(item => item.name).join(',')} - ${name}`
       console.log(`歌曲匹配失败：${failedName}`)
       copyFailedItems.push(failedName)
       debugger
@@ -142,9 +144,11 @@ async function arrangeFile(tracks) {
       if (!fs.existsSync(targetPath)) {
         console.log(`复制：【${fromName}】 -> 【${targetName}】`)
         shell.cp(path.join(config.fromDir, fromName), targetPath)
+        copySucceedItems.push(fromName)
       } else {
-        console.log(`跳过：【${fromName}】 -> 【${targetName}】`)
+        verbose && console.log(`跳过：【${fromName}】 -> 【${targetName}】`)
       }
+
     }
 
 
@@ -154,11 +158,22 @@ async function arrangeFile(tracks) {
   if (copyFailedItems.length > 0) {
     console.log(`警告：有 ${copyFailedItems.length} 个匹配失败，请尝试手动复制或修改源码 :)`)
     console.log(copyFailedItems)
+
+    const erroredFile = path.join(distDir, 'errored.json')
+    fs.writeFileSync(erroredFile, JSON.stringify(copyFailedItems, null, 2), {
+      encoding: 'utf8'
+    })
+    console.log(`失败文件列表已保存至`, erroredFile)
+
   } else {
     console.log(`全部歌曲复制成功！`)
-    let isDelete = await inquireYesOrNo(`要删除 ${config.fromDir} 里的原文件吗？`)
+  }
+
+
+  if (copySucceedItems.length > 0) {
+    let isDelete = await inquireYesOrNo(`要删除 ${config.fromDir} 里复制成功的原文件吗（共 ${copySucceedItems.length} 个）？`)
     if (isDelete) {
-      isDelete = await inquireYesOrNo(`再次确认是否要删除？此操作不可撤销，删除前请退出网易云音乐`)
+      isDelete = await inquireYesOrNo(`再次确认是否要删除？此操作不可撤销，删除前请退出云音乐客户端以免删除失败。`)
       // console.log(Object.keys(copiedFiles))
       isDelete && shell.rm(Object.keys(copiedFiles))
     }
