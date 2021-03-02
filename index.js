@@ -1,3 +1,21 @@
+/**
+
+- 批量下载163Music歌单中的音乐，并按照顺序排序文件
+- 基于 Node.js 和 [NeteaseCloudMusicApi](https://binaryify.github.io/NeteaseCloudMusicApi)
+- 只要在163Music可以直接播放的歌曲，就可以下载（码率较低）
+- **版权限制的音乐无法下载**
+
+## 歌单下载
+
+0. 安装 Node.js
+1. 打开 [index.js](./index.js)，修改参数：
+    - `apiBaseUrl`：你自己搭建的 NeteaseCloudMusicApi 服务地址。
+    - `playlistID`：歌单id，可以从163Music分享链接中获取，如 `https://music.163.com/#/playlist?id=385283496`，id 为 `385283496`。
+2. `npm install` 安装依赖。
+3. `npm start` 开始下载。
+
+*/
+
 const axios = require('axios')
 const fs = require('fs')
 const path = require('path')
@@ -21,9 +39,9 @@ let {
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
 async function run() {
-  console.log('欢迎使用网易云音乐下载脚本！')
+  console.log('欢迎使用163Music下载脚本！')
 
-  const urlOrId = await inquireInputString('请输入网易云音乐歌单链接或id', playlistID)
+  const urlOrId = await inquireInputString('请输入163Music歌单链接或id', playlistID)
   if (!urlOrId) {
     console.log('退出')
     return

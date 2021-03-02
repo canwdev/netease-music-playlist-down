@@ -71,7 +71,7 @@ const VM = new Vue({
           throw new Error(available.message)
         }
         if (!musicUrl.url) {
-          this.$vant.Toast('版权限制，无法下载，请在网易云开通会员')
+          this.$vant.Toast('版权限制，无法下载')
           throw new Error('版权限制')
         }
 

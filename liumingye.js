@@ -29,7 +29,7 @@ let {
 async function run() {
   console.log('欢迎使用 liumingye-api 下载脚本！')
 
-  const urlOrId = await inquireInputString('请输入网易云音乐歌单链接或id', playlistID)
+  const urlOrId = await inquireInputString('请输入163Music歌单链接或id', playlistID)
   if (!urlOrId) {
     console.log('退出')
     return
