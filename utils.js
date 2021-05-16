@@ -160,7 +160,7 @@ async function inquireConfigFile(message = '选择一个配置文件', baseDir) 
  * @param defaultResult
  * @returns {Promise<*>}
  */
-async function inquireYesOrNo(message = "确定？", defaultResult = false) {
+async function inquireYesOrNo(message = "确定？", defaultResult = true) {
   const answers = await inquirer.prompt([
     {
       type: 'confirm',
@@ -217,6 +217,12 @@ function doSleep(time = 300) {
   })
 }
 
+function writeTextSync(pth, str) {
+  return fs.writeFileSync(pth, str, {
+    encoding: 'utf8'
+  })
+}
+
 module.exports = {
   createDownloadDir,
   getSongBufferWithTags,
@@ -228,5 +234,6 @@ module.exports = {
   inquireInputString,
   parseUrlQuery,
   parseNcmPlaylistId,
-  doSleep
+  doSleep,
+  writeTextSync
 }
