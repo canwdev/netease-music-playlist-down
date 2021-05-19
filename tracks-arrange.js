@@ -2,13 +2,23 @@
  * 自动整理网易云音乐下载的歌曲
  * 根据歌单序号自动排序
  * 下载封面，自动输出到目标文件夹
+ * 从 https://github.com/Binaryify/NeteaseCloudMusicApi 获取的歌单详情json
  */
 const config = {
   fromDir: '/home/can/Downloads/Music/', // 网易云音乐PC客户端下载文件夹
   toDir: '/home/can/Downloads/MusicArranged/', // 目标文件夹
-  playlistID: '526089535' // 歌单ID，从 https://github.com/Binaryify/NeteaseCloudMusicApi 获取的歌单详情json
+  playlistID: 'http://music.163.com/playlist?id=698720887&userid=38995940' // 歌单ID，可以是链接（字符串）或id（数值）
 }
+config.playlistID = formatPlaylistId(config.playlistID)
 const {apiBaseUrl} = require('./config')
+
+function formatPlaylistId(val) {
+  if (!isNaN(parseInt(val))) {
+    return String(val)
+  }
+  const qs = val.split('?').pop()
+  return qs.split('&')[0].split('=').pop()
+}
 
 const fs = require('fs')
 const path = require('path')
@@ -130,7 +140,7 @@ async function saveMeta(data, tracks) {
   const {creator} = playlist || {}
   const info = `歌单id：[${playlist.id}](https://music.163.com/#/playlist?id=${playlist.id})\n创建者：[${creator.nickname}](https://music.163.com/#/user/home?id=${creator.userId})\n标签：「${(playlist.tags || []).join('、')}」\n数量：${playlist.trackCount}\n`
   const songListText = (tracks || []).reduce((prev, item) => {
-    const singers = (item.ar || []).map(v => v.name).join(', ')
+    const singers = (item.ar || []).map(v => v.name).join(',')
     return prev + `1. [${singers} - ${item.name}](https://music.163.com/#/song?id=${item.id})\n`
   }, '')
   const readmeContents = `# ${playlist.name}\n\n${coverText}${info}## 简介\n${playlist.description}\n\n## 播放列表\n${songListText}\n`
@@ -166,7 +176,7 @@ async function arrangeFile(tracks) {
 
     // 简单匹配歌曲名，item 格式如 `Молчат Дома - Тоска.mp3`
     const filteredFiles = files.filter(item => {
-      // 如果已复制则不选中，避免重复
+      // 如果已移动则不选中，避免重复
       if (copiedFiles[item]) {
         return false
       }
@@ -213,8 +223,8 @@ async function arrangeFile(tracks) {
       copiedFiles[fromName] = true
       const targetPath = path.join(distDir, targetName)
       if (!fs.existsSync(targetPath)) {
-        console.log(`复制：【${fromName}】 -> 【${targetName}】`)
-        shell.cp(path.join(config.fromDir, fromName), targetPath)
+        console.log(`移动：【${fromName}】 -> 【${targetName}】`)
+        shell.mv(path.join(config.fromDir, fromName), targetPath)
         copySucceedItems.push(fromName)
       } else {
         verbose && console.log(`跳过：【${fromName}】 -> 【${targetName}】`)
@@ -227,28 +237,30 @@ async function arrangeFile(tracks) {
 
   console.log('----------------------')
   if (copyFailedItems.length > 0) {
-    console.log(`警告：有 ${copyFailedItems.length} 个匹配失败，请尝试手动复制或修改源码 :)`)
+    console.log(`警告：有 ${copyFailedItems.length} 个匹配失败，请尝试手动移动或修改源码 :)`)
     console.log(copyFailedItems)
   } else {
-    console.log(`全部歌曲复制成功！`)
+    console.log(`全部歌曲移动成功！`)
   }
 
 
-  if (copySucceedItems.length > 0) {
-    let isDelete = await inquireYesOrNo(`要删除 ${config.fromDir} 里复制成功的原文件吗？（共 ${copySucceedItems.length} 个文件，删除前请退出云音乐客户端以免删除失败）`)
-    if (isDelete) {
-      shell.rm(Object.keys(copiedFiles))
+  // if (copySucceedItems.length > 0) {
+  //   let isDelete = await inquireYesOrNo(`要删除 ${config.fromDir} 里复制成功的原文件吗？（共 ${copySucceedItems.length} 个文件，删除前请退出云音乐客户端以免删除失败）`)
+  //   if (isDelete) {
+  //     shell.rm(Object.keys(copiedFiles))
+  //
+  //
+  //   }
+  //   if (!isDelete) {
+  //     console.log('没有删除')
+  //   }
+  // }
 
-      if (copyFailedItems.length > 0) {
-        // 防止重复运行找不到错误的列表，将列表保存至文件
-        const erroredFile = path.join(distDir, 'errored.json')
-        writeTextSync(erroredFile, JSON.stringify(copyFailedItems, null, 2))
-        console.log(`失败文件列表已保存至`, erroredFile)
-      }
-    }
-    if (!isDelete) {
-      console.log('没有删除')
-    }
+  if (copyFailedItems.length > 0) {
+    // 防止重复运行找不到错误的列表，将列表保存至文件
+    const erroredFile = path.join(distDir, 'errored.json')
+    writeTextSync(erroredFile, JSON.stringify(copyFailedItems, null, 2))
+    console.log(`失败文件列表已保存至`, erroredFile)
   }
 }
 
