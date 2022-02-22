@@ -4,6 +4,8 @@
 
 > 根据歌单序号自动排序
 
+![img](./tracks-arrange-demo.gif)
+
 1. 打开 tracks-arrange.js，修改参数：
 
    ```
