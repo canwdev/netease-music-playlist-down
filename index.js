@@ -1,25 +1,10 @@
 /**
-
-- 批量下载163Music歌单中的音乐，并按照顺序排序文件
-- 基于 Node.js 和 [NeteaseCloudMusicApi](https://binaryify.github.io/NeteaseCloudMusicApi)
-- 只要在163Music可以直接播放的歌曲，就可以下载（码率较低）
-- **版权限制的音乐无法下载**
-
-## 歌单下载
-
-0. 安装 Node.js
-1. 打开 [index.js](./index.js)，修改参数：
-    - `apiBaseUrl`：你自己搭建的 NeteaseCloudMusicApi 服务地址。
-    - `playlistID`：歌单id，可以从163Music分享链接中获取，如 `https://music.163.com/#/playlist?id=385283496`，id 为 `385283496`。
-2. `npm install` 安装依赖。
-3. `npm start` 开始下载。
-
-*/
-
+ 批量下载NeteaseCloudMusic歌单中的音乐
+ */
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 const axios = require('axios')
 const fs = require('fs')
-const path = require('path')
-var sanitize = require("sanitize-filename");
+const Path = require('path')
 
 const {
   createDownloadDir,
@@ -28,42 +13,56 @@ const {
   formatArtist,
   inquireInputString,
   parseNcmPlaylistId,
+  initCustomerConfig,
+  sanitize,
+  writeTextSync,
 } = require('./utils')
 
 let {
+  downloadDir,
+  downloadCustomerConfigPath,
   apiBaseUrl,
   playlistID,
   numbering,
 } = require('./config')
+const path = require('path')
 
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
 async function run() {
-  console.log('欢迎使用163Music下载脚本！')
+  console.log('欢迎使用NeteaseCloudMusic下载脚本！')
+  const customerConfig = initCustomerConfig(downloadCustomerConfigPath)
 
-  const urlOrId = await inquireInputString('请输入163Music歌单链接或id', playlistID)
-  if (!urlOrId) {
-    console.log('退出')
+  const urlOrId = await inquireInputString('请输入歌单链接或id（歌单->分享->复制链接）', customerConfig.playlistID || playlistID)
+  const playlistIDNumber = parseNcmPlaylistId(urlOrId)
+  if (!playlistIDNumber) {
+    console.log('Exit')
     return
   }
-  playlistID = parseNcmPlaylistId(urlOrId)
 
-  axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistID}`).then(async res => {
-    const data = res.data
+  try {
+    const {data: playListData} = await axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistIDNumber}`)
 
     // 歌单名称
-    const playlistName = data.playlist.name
-    const playlist = data.playlist.tracks
-    console.log(`歌单获取成功！《${playlistName}》`)
+    const playlistName = playListData.playlist.name
+    const playlist = playListData.playlist.tracks
+    console.log(`✅ 歌单获取成功！《${playlistName}》\n`)
 
     // 创建下载文件夹和meta
     const distDir = createDownloadDir({
-      playlistName: playlistID + '_' + playlistName,
-      data
+      distDirBase: downloadDir,
+      playlistName: playlistIDNumber + '_' + playlistName,
     })
 
+    // 保存 meta 信息
+    writeTextSync(path.join(distDir, 'index.json'), JSON.stringify(playListData))
+    // 保存自定义设置
+    writeTextSync(downloadCustomerConfigPath, JSON.stringify({
+      ...customerConfig,
+      playlistID: playlistIDNumber
+    }))
+
     // 开始批量下载
-    console.log(`开始下载歌单，共 ${playlist.length} 首歌曲`)
+    console.log(`🪂 开始下载歌单，共 ${playlist.length} 首歌曲\n`)
     const succeed = []
     const errored = []
 
@@ -76,7 +75,7 @@ async function run() {
       const {name, id, ar} = song
       const saveName = formatArtist(ar, ', ') + ' - ' + name + '.mp3'
       const number = numbering ? `${index}. ` : ''
-      const songSavePath = path.join(distDir, sanitize(`${number}${saveName}`, {replacement: '_'}))
+      const songSavePath = Path.join(distDir, sanitize(`${number}${saveName}`, {replacement: '_'}))
       const songErroredPath = songSavePath + '.errored.json'
 
       try {
@@ -88,11 +87,11 @@ async function run() {
         } else {
 
           // 获取下载地址
-          console.log(`${statusText}正在获取歌曲《${name}》信息，id=${id}`)
+          console.log(`\n🛸 ${statusText}正在获取歌曲《${name}》信息，id=${id}`)
           const downInfo = await getSongDownloadInfo(song.id)
 
           // 下载
-          console.log('开始下载', downInfo.url)
+          console.log('🚀 开始下载', downInfo.url)
 
           const {songArrayBuffer: buffer} = await getSongBufferWithTags({
             downloadUrl: downInfo.url,
@@ -101,7 +100,7 @@ async function run() {
             ar
           })
           fs.writeFileSync(songSavePath, Buffer.from(buffer))
-          console.log('已下载', songSavePath)
+          console.log('✅ 已下载', songSavePath)
         }
         succeed.push(song)
 
@@ -113,19 +112,21 @@ async function run() {
       }
       // break
     }
-    console.log(`执行结束！有 ${succeed.length} 个音乐下载成功。`)
+    console.log(`\n\n🆗 执行结束！有 ${succeed.length} 个音乐下载成功。`)
 
     if (errored.length > 0) {
-      console.log(`${errored.length} 个音乐下载失败：`)
+      console.log(`\n\n⚠ 其中，${errored.length} 个音乐下载失败：`)
       errored.forEach(song => {
         const {_index, name, id} = song
         console.log(`${_index}.《${name}》, id=${id}`)
       })
     }
 
-  }).catch(e => {
+
+  } catch (e) {
     console.error('获取歌单失败！', e.message)
-  })
+  }
+
 }
 
 /**

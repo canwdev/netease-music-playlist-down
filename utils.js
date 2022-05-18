@@ -1,33 +1,26 @@
 const axios = require('axios')
-const path = require('path')
+const Path = require('path')
 const fs = require('fs')
 const ID3Writer = require('browser-id3-writer');
-var sanitize = require("sanitize-filename");
 const inquirer = require("inquirer")
-
-
 const {
   apiBaseUrl
 } = require('./config')
+const sanitizeFilename = require('sanitize-filename')
+
+const sanitize = (input) => sanitizeFilename(input, {replacement: '_'})
 
 /**
- * 创建下载文件夹和meta
+ * 创建下载文件夹
  * @param distDirName 下载目录名称
  * @param playlistName 歌单名称
- * @param data 歌单列表数据
  */
-function createDownloadDir({distDirName = 'dist', playlistName, data}) {
+function createDownloadDir({distDirBase = __dirname, playlistName}) {
   // 创建下载目录
-  const distDir = path.join(__dirname, distDirName, sanitize(playlistName))
+  const distDir = Path.join(distDirBase, sanitize(playlistName))
   if (!fs.existsSync(distDir)) {
     fs.mkdirSync(distDir, {recursive: true});
   }
-
-  // 保存 meta 信息
-  fs.writeFileSync(path.join(distDir, 'index.json'), JSON.stringify(data), {
-    encoding: 'utf8'
-  })
-
   return distDir
 }
 
@@ -151,7 +144,7 @@ async function inquireConfigFile(message = '选择一个配置文件', baseDir) 
     }
   ])
 
-  return path.join(baseDir, answers.configFile)
+  return Path.join(baseDir, answers.configFile)
 }
 
 /**
@@ -199,6 +192,9 @@ function parseUrlQuery(url) {
 }
 
 function parseNcmPlaylistId(urlOrId) {
+  if (!urlOrId) {
+    return
+  }
   var id = Number(urlOrId)
 
   if (!Number.isNaN(id)) {
@@ -223,7 +219,26 @@ function writeTextSync(pth, str) {
   })
 }
 
+
+function initCustomerConfig(savePath) {
+  const downloadDir = Path.dirname(savePath)
+  if (!fs.existsSync(downloadDir)) {
+    fs.mkdirSync(downloadDir, {recursive: true});
+  }
+  let customerConfig = {
+    playlistID: null
+  }
+  if (!fs.existsSync(savePath)) {
+    fs.writeFileSync(savePath, JSON.stringify(customerConfig), {encoding: 'utf8'})
+  } else {
+    customerConfig = require(savePath)
+  }
+  // console.log({customerConfig})
+  return customerConfig
+}
+
 module.exports = {
+  sanitize,
   createDownloadDir,
   getSongBufferWithTags,
   padZero,
@@ -235,5 +250,6 @@ module.exports = {
   parseUrlQuery,
   parseNcmPlaylistId,
   doSleep,
-  writeTextSync
+  writeTextSync,
+  initCustomerConfig
 }
