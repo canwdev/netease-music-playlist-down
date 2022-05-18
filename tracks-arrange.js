@@ -6,7 +6,7 @@
  */
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 const fs = require('fs')
-const path = require('path')
+const Path = require('path')
 const shell = require('shelljs')
 const axios = require('axios')
 const {
@@ -16,19 +16,21 @@ const {
   parseNcmPlaylistId,
   inquireInputString,
   initCustomerConfig,
-} = require('./utils')
+} = require('./utils/index')
 
 const {
   downloadCustomerConfigPath,
   apiBaseUrl,
-  playlistID
+  playlistID,
+  metaFileName,
+  isDebug,
 } = require('./config')
+const {savePlaylistMeta, getPlaylistData} = require('./utils/meta')
 
 const localConfig = {
-  isDebug: false,
   fromDir: 'D:\\CloudMusic', //  NeteaseCloudMusic PC客户端下载文件夹
   toDir: 'D:\\CloudMusicArranged', // 目标文件夹
-  metaFileName: 'meta.json',
+  metaFileName,
   arrangeDistDir: null,
   playlistIDNumber: null
 }
@@ -43,67 +45,22 @@ async function initBasic() {
     return
   }
 
-  localConfig.arrangeDistDir = path.join(localConfig.toDir, localConfig.playlistIDNumber.toString())
+  localConfig.arrangeDistDir = Path.join(localConfig.toDir, localConfig.playlistIDNumber.toString())
 
   const toDir = localConfig.toDir
   if (!fs.existsSync(toDir)) {
-    shell.mkdir('-p', toDir)
+    fs.mkdirSync(toDir, {recursive: true})
   }
 
   // 查找设置输出目录（如果存在）
   const folders = fs.readdirSync(toDir)
   const folder = folders.find(item => item.includes(localConfig.playlistIDNumber))
   if (folder) {
-    localConfig.arrangeDistDir = path.join(localConfig.toDir, folder)
+    localConfig.arrangeDistDir = Path.join(localConfig.toDir, folder)
     console.log('使用已存在输出目录：', folder)
   }
 }
 
-async function getPlaylistTracks() {
-  const metaDataPath = path.join(localConfig.arrangeDistDir, localConfig.metaFileName)
-
-  // 如果已保存元数据，则不请求接口
-  if (fs.existsSync(metaDataPath)) {
-    const data = require(metaDataPath)
-    const {songDetailListData: {songs: tracks}} = data
-
-    console.log('✅ 从本地读取歌单成功！')
-    return {
-      tracks,
-      data
-    }
-  }
-
-  const requestUrl = `${apiBaseUrl}/playlist/detail?id=${localConfig.playlistIDNumber}`
-  console.log('🛸 获取歌单详情...', requestUrl)
-  const {data: playListData} = await axios.get(requestUrl)
-  const {playlist} = playListData || {}
-  const {trackIds} = playlist || {}
-  console.log('✅ 获取歌单详情成功！')
-
-  // 仅当文件夹不存在时执行初始化输出目录
-  if (!fs.existsSync(localConfig.arrangeDistDir)) {
-    const dirName = `${sanitize(playlist.name)}__${playlist.id}`
-    localConfig.arrangeDistDir = path.join(localConfig.toDir, dirName)
-    shell.mkdir('-p', localConfig.arrangeDistDir)
-    console.log('创建输出目录成功：', dirName)
-  }
-
-
-  console.log('🛸 获取歌曲列表...')
-  const {data: songDetailListData} = await axios.get(`${apiBaseUrl}/song/detail?ids=${trackIds.map(item => item.id).join(',')}`)
-  const {songs: tracks} = songDetailListData
-  console.log('✅ 获取歌曲列表成功！')
-
-  return {
-    tracks,
-    data: {
-      playListData,
-      songDetailListData
-    }
-  }
-
-}
 
 async function arrangeFile(tracks) {
   console.log(`源目录：${localConfig.fromDir}\n输出目录：${localConfig.arrangeDistDir}\n开始操作...`)
@@ -161,7 +118,7 @@ async function arrangeFile(tracks) {
           && new RegExp(`^${artist}`).test(sArtists) // 第一位歌手匹配
         )
       } catch (e) {
-        localConfig.isDebug && console.log(`WARNING: ${e.message} 【${item}】`)
+        isDebug && console.log(`WARNING: ${e.message} 【${item}】`)
         return false
       }
 
@@ -178,13 +135,13 @@ async function arrangeFile(tracks) {
       debugger
     } else {
       copiedFiles[fromName] = true
-      const targetPath = path.join(localConfig.arrangeDistDir, targetName)
+      const targetPath = Path.join(localConfig.arrangeDistDir, targetName)
       if (!fs.existsSync(targetPath)) {
         console.log(`移动：【${fromName}】 -> 【${targetName}】`)
-        shell.mv(path.join(localConfig.fromDir, fromName), targetPath)
+        shell.mv(Path.join(localConfig.fromDir, fromName), targetPath)
         copySucceedItems.push(fromName)
       } else {
-        localConfig.isDebug && console.log(`跳过：【${fromName}】 -> 【${targetName}】`)
+        isDebug && console.log(`跳过：【${fromName}】 -> 【${targetName}】`)
       }
 
     }
@@ -215,70 +172,39 @@ async function arrangeFile(tracks) {
 
   if (copyFailedItems.length > 0) {
     // 防止重复运行找不到错误的列表，将列表保存至文件
-    const erroredFile = path.join(localConfig.arrangeDistDir, 'errored.json')
+    const erroredFile = Path.join(localConfig.arrangeDistDir, 'errored.json')
     writeTextSync(erroredFile, JSON.stringify(copyFailedItems, null, 2))
     console.log(`失败文件列表已保存至`, erroredFile)
   }
 }
 
-async function saveMeta(data, tracks) {
-  // 保存 meta 信息
-  const metaDataPath = path.join(localConfig.arrangeDistDir, localConfig.metaFileName)
-  if (fs.existsSync(metaDataPath)) {
-    console.log('meta 数据已存在，跳过保存！')
-    return
-  }
 
-  const {playListData, songDetailListData} = data
-  const {playlist} = playListData || {}
-
-  // ncm 原始数据
-  writeTextSync(metaDataPath, JSON.stringify(data))
-
-  let hasCover = false
-  const coverName = 'Cover.jpg'
-  try {
-    // 封面
-    const coverUrl = playlist.coverImgUrl
-    if (coverUrl) {
-      console.log('下载封面图...', coverUrl)
-      const coverPath = path.join(localConfig.arrangeDistDir, coverName)
-      const {data} = await axios.get(coverUrl, {
-        responseType: 'arraybuffer'
-      })
-      fs.writeFileSync(coverPath, Buffer.from(data))
-    }
-    hasCover = true
-    console.log('✅ 下载成功！')
-  } catch (e) {
-    console.error('获取封面失败', e)
-  }
-
-  // 自述文件
-  const readmePath = path.join(localConfig.arrangeDistDir, 'README.md')
-  let coverText = ``
-  if (hasCover) {
-    coverText = `<img src="./${coverName}" height="256"/>\n\n`
-  }
-  const {creator} = playlist || {}
-  const info = `歌单id：[${playlist.id}](https://music.163.com/#/playlist?id=${playlist.id})\n创建者：[${creator.nickname}](https://music.163.com/#/user/home?id=${creator.userId})\n标签：「${(playlist.tags || []).join('、')}」\n数量：${playlist.trackCount}\n`
-  const songListText = (tracks || []).reduce((prev, item) => {
-    const singers = (item.ar || []).map(v => v.name).join(',')
-    return prev + `1. [${singers} - ${item.name}](https://music.163.com/#/song?id=${item.id})\n`
-  }, '')
-  const readmeContents = `# ${playlist.name}\n\n${coverText}${info}## 简介\n${playlist.description}\n\n## 播放列表\n${songListText}\n`
-  writeTextSync(readmePath, readmeContents)
-
-}
 
 async function main() {
   await initBasic()
 
-  const {tracks, data} = await getPlaylistTracks()
+  const {
+    playListData,
+    songDetailListData,
+    tracks,
+  } = await getPlaylistData(localConfig.playlistIDNumber, localConfig)
+
+  // 仅当文件夹不存在时执行初始化输出目录
+  if (!fs.existsSync(localConfig.arrangeDistDir)) {
+    const {playlist} = playListData
+    const dirName = `${sanitize(playlist.name)}__${playlist.id}`
+    localConfig.arrangeDistDir = Path.join(localConfig.toDir, dirName)
+    fs.mkdirSync(localConfig.arrangeDistDir, {recursive: true})
+    console.log('创建输出目录成功：', dirName)
+  }
 
   await arrangeFile(tracks)
 
-  await saveMeta(data, tracks)
+  await savePlaylistMeta({
+    playListData,
+    songDetailListData,
+    tracks
+  }, localConfig)
 
   console.log('Done')
 }

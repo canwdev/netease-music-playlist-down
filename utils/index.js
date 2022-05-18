@@ -5,7 +5,7 @@ const ID3Writer = require('browser-id3-writer');
 const inquirer = require("inquirer")
 const {
   apiBaseUrl
-} = require('./config')
+} = require('../config')
 const sanitizeFilename = require('sanitize-filename')
 
 const sanitize = (input) => sanitizeFilename(input, {replacement: '_'})
