@@ -1,7 +1,7 @@
 # NeteaseCloudMusic 歌单工具
 
 - 基于 Node.js 和 [NeteaseCloudMusicApi](https://binaryify.github.io/NeteaseCloudMusicApi)
-- 只要在NeteaseCloudMusic可以直接播放的歌曲，就可以下载（码率较低）
+- 仅供交流学习使用，严禁商业用途!!
 - 版权限制的音乐无法下载（
 
 ## 歌单下载
