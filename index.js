@@ -29,20 +29,20 @@ let {
 } = require('./config')
 const path = require('path')
 
-async function batchDownload(playlist, config = {}) {
+async function batchDownload(tracks, config = {}) {
   const {
     distDir
   } = config
   // 开始批量下载
-  console.log(`🪂 开始下载歌单，共 ${playlist.length} 首歌曲\n`)
+  console.log(`🪂 开始下载歌单，共 ${tracks.length} 首歌曲\n`)
   const succeed = []
   const errored = []
 
-  for (let i = 0; i < playlist.length; i++) {
-    const index = padZero((i + 1), (playlist.length).toString().length)
-    const statusText = `[${index}/${playlist.length}] `
+  for (let i = 0; i < tracks.length; i++) {
+    const index = padZero((i + 1), (tracks.length).toString().length)
+    const statusText = `[${index}/${tracks.length}] `
 
-    const song = playlist[i]
+    const song = tracks[i]
     song._index = index
     const {name, id, ar} = song
     const saveName = formatArtist(ar, ', ') + ' - ' + name + '.mp3'
@@ -144,8 +144,7 @@ async function run() {
     const {data: playListData} = await axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistIDNumber}`)
 
     // 歌单名称
-    const playlistName = playListData.playlist.name
-    const playlist = playListData.playlist.tracks
+    const {name: playlistName, tracks} = playListData.playlist
     console.log(`✅ 歌单获取成功！《${playlistName}》\n`)
 
     // 创建下载文件夹和meta
@@ -162,7 +161,7 @@ async function run() {
       playlistID: playlistIDNumber
     }))
 
-    await batchDownload(playlist, {distDir})
+    await batchDownload(tracks, {distDir})
 
   } catch (e) {
     console.error('获取歌单失败！', e.message)

@@ -62,7 +62,7 @@ async function initBasic() {
 }
 
 
-async function arrangeFile(tracks) {
+async function arrangeFile(songs) {
   console.log(`源目录：${localConfig.fromDir}\n输出目录：${localConfig.arrangeDistDir}\n开始操作...`)
   const copiedFiles = {}
   const copySucceedItems = []
@@ -71,9 +71,9 @@ async function arrangeFile(tracks) {
   shell.cd(localConfig.fromDir)
   const files = shell.ls()
 
-  for (let i = 0; i < tracks.length; i++) {
+  for (let i = 0; i < songs.length; i++) {
     const num = Number(i) + 1
-    let {name, ar} = tracks[i]
+    let {name, ar} = songs[i]
     let {name: artist} = ar[0]
 
     name = name
@@ -125,7 +125,7 @@ async function arrangeFile(tracks) {
     })
 
     const fromName = filteredFiles[0]
-    const index = padZero((i + 1), (tracks.length).toString().length)
+    const index = padZero((i + 1), (songs.length).toString().length)
     const targetName = `${index}. ${fromName}`
 
     if (!fromName) {
@@ -183,11 +183,12 @@ async function arrangeFile(tracks) {
 async function main() {
   await initBasic()
 
+  const metaDataPath = Path.join(localConfig.arrangeDistDir, localConfig.metaFileName)
+
   const {
     playListData,
     songDetailListData,
-    tracks,
-  } = await getPlaylistData(localConfig.playlistIDNumber, localConfig)
+  } = await getPlaylistData(localConfig.playlistIDNumber, {metaDataPath})
 
   // 仅当文件夹不存在时执行初始化输出目录
   if (!fs.existsSync(localConfig.arrangeDistDir)) {
@@ -198,12 +199,12 @@ async function main() {
     console.log('创建输出目录成功：', dirName)
   }
 
-  await arrangeFile(tracks)
+  const {songs} = songDetailListData
+  await arrangeFile(songs)
 
   await savePlaylistMeta({
     playListData,
     songDetailListData,
-    tracks
   }, localConfig)
 
   console.log('Done')

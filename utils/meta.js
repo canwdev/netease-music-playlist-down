@@ -8,39 +8,29 @@ const {apiBaseUrl} = require('../config')
 
 async function getPlaylistData(playlistIDNumber, config = {}) {
   const {
-    arrangeDistDir,
-    metaFileName,
+    metaDataPath
   } = config
-  const metaDataPath = Path.join(arrangeDistDir, metaFileName)
 
   // 如果已保存元数据，则不请求接口
   if (fs.existsSync(metaDataPath)) {
     const data = require(metaDataPath)
-    const {songDetailListData: {songs: tracks}} = data
-
     console.log('✅ 从本地读取歌单成功！')
-    return {
-      tracks,
-      data
-    }
+    return data
   }
 
-  const requestUrl = `${apiBaseUrl}/playlist/detail?id=${playlistIDNumber}`
-  console.log('🛸 获取歌单详情...', requestUrl)
-  const {data: playListData} = await axios.get(requestUrl)
-  const {playlist} = playListData || {}
-  const {trackIds} = playlist || {}
-  console.log('✅ 获取歌单详情成功！')
+  console.log('🛸 获取歌单...')
+  const {data: playListData} = await axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistIDNumber}`)
+  const {name: playlistName, trackIds} = playListData.playlist
 
-  console.log('🛸 获取歌曲列表...')
+  console.log(`✅ 歌单获取成功！《${playlistName}》\n`)
+
+  console.log('🛸 获取歌曲列表详情...')
   const {data: songDetailListData} = await axios.get(`${apiBaseUrl}/song/detail?ids=${trackIds.map(item => item.id).join(',')}`)
-  const {songs: tracks} = songDetailListData
-  console.log('✅ 获取歌曲列表成功！')
+  console.log('✅ 获取歌曲列表详情成功！')
 
   return {
     playListData,
     songDetailListData,
-    tracks,
   }
 
 }
@@ -49,8 +39,8 @@ async function savePlaylistMeta(data = {}, config = {}) {
   const {
     playListData = {},
     songDetailListData = {},
-    tracks = []
   } = data
+  const {songs} = songDetailListData
   const {
     arrangeDistDir,
     metaFileName,
@@ -96,7 +86,7 @@ async function savePlaylistMeta(data = {}, config = {}) {
   const {creator} = playlist
   const infoText = `歌单id：[${playlist.id}](https://music.163.com/#/playlist?id=${playlist.id})\n创建者：[${creator.nickname}](https://music.163.com/#/user/home?id=${creator.userId})\n标签：「${(playlist.tags || []).join('、')}」\n数量：${playlist.trackCount}\n`
 
-  const songListText = tracks.reduce((prev, item) => {
+  const songListText = songs.reduce((prev, item) => {
     const singers = (item.ar || []).map(v => v.name).join(',')
     return prev + `1. [${singers} - ${item.name}](https://music.163.com/#/song?id=${item.id})\n`
   }, '')
