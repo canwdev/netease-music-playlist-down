@@ -44,26 +44,10 @@ async function initBasic() {
     console.log('Exit')
     return
   }
-
-  localConfig.arrangeDistDir = Path.join(localConfig.toDir, localConfig.playlistIDNumber.toString())
-
-  const toDir = localConfig.toDir
-  if (!fs.existsSync(toDir)) {
-    fs.mkdirSync(toDir, {recursive: true})
-  }
-
-  // 查找设置输出目录（如果存在）
-  const folders = fs.readdirSync(toDir)
-  const folder = folders.find(item => item.includes(localConfig.playlistIDNumber))
-  if (folder) {
-    localConfig.arrangeDistDir = Path.join(localConfig.toDir, folder)
-    console.log('使用已存在输出目录：', folder)
-  }
 }
 
-
 async function arrangeFile(songs) {
-  console.log(`源目录：${localConfig.fromDir}\n输出目录：${localConfig.arrangeDistDir}\n开始操作...`)
+  console.log(`\n源目录：${localConfig.fromDir}\n输出目录：${localConfig.arrangeDistDir}\n\n开始操作...`)
   const copiedFiles = {}
   const copySucceedItems = []
   const copyFailedItems = []
@@ -178,17 +162,19 @@ async function arrangeFile(songs) {
   }
 }
 
-
-
 async function main() {
   await initBasic()
 
-  const metaDataPath = Path.join(localConfig.arrangeDistDir, localConfig.metaFileName)
-
   const {
+    metaBasePath,
     playListData,
     songDetailListData,
-  } = await getPlaylistData(localConfig.playlistIDNumber, {metaDataPath})
+  } = await getPlaylistData(localConfig.playlistIDNumber, {
+    basePath: localConfig.toDir,
+    isGetDetail: true
+  })
+
+  localConfig.arrangeDistDir = metaBasePath
 
   // 仅当文件夹不存在时执行初始化输出目录
   if (!fs.existsSync(localConfig.arrangeDistDir)) {
@@ -196,7 +182,7 @@ async function main() {
     const dirName = `${sanitize(playlist.name)}__${playlist.id}`
     localConfig.arrangeDistDir = Path.join(localConfig.toDir, dirName)
     fs.mkdirSync(localConfig.arrangeDistDir, {recursive: true})
-    console.log('创建输出目录成功：', dirName)
+    console.log('✅ 创建输出目录成功，目录名：', dirName)
   }
 
   const {songs} = songDetailListData

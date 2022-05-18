@@ -8,14 +8,38 @@ const {apiBaseUrl} = require('../config')
 
 async function getPlaylistData(playlistIDNumber, config = {}) {
   const {
-    metaDataPath
+    basePath,
+    isGetDetail = false,
+    metaFileName = 'meta.json'
   } = config
+  if (!fs.existsSync(basePath)) {
+    fs.mkdirSync(basePath, {recursive: true})
+  }
+  let metaBasePath = Path.join(basePath, playlistIDNumber.toString())
+
+  // 查找设置输出目录（如果存在）
+  const folders = fs.readdirSync(basePath)
+  const folder = folders.find(item => item.includes(playlistIDNumber))
+  if (folder) {
+    metaBasePath = Path.join(basePath, folder)
+    console.log('使用已存在输出目录，目录名：', folder)
+  }
+
+  const metaFilePath = Path.join(metaBasePath, metaFileName)
+
+  const retObj = {
+    metaBasePath,
+    metaFilePath,
+  }
 
   // 如果已保存元数据，则不请求接口
-  if (fs.existsSync(metaDataPath)) {
-    const data = require(metaDataPath)
+  if (fs.existsSync(metaFilePath)) {
+    const data = require(metaFilePath)
     console.log('✅ 从本地读取歌单成功！')
-    return data
+    return {
+      ...retObj,
+      ...data,
+    }
   }
 
   console.log('🛸 获取歌单...')
@@ -24,15 +48,17 @@ async function getPlaylistData(playlistIDNumber, config = {}) {
 
   console.log(`✅ 歌单获取成功！《${playlistName}》\n`)
 
-  console.log('🛸 获取歌曲列表详情...')
-  const {data: songDetailListData} = await axios.get(`${apiBaseUrl}/song/detail?ids=${trackIds.map(item => item.id).join(',')}`)
-  console.log('✅ 获取歌曲列表详情成功！')
+  retObj.playListData = playListData
 
-  return {
-    playListData,
-    songDetailListData,
+  if (isGetDetail) {
+    console.log('🛸 获取歌曲列表详情...')
+    const {data: songDetailListData} = await axios.get(`${apiBaseUrl}/song/detail?ids=${trackIds.map(item => item.id).join(',')}`)
+    console.log('✅ 获取歌曲列表详情成功！')
+
+    retObj.songDetailListData = songDetailListData
   }
 
+  return retObj
 }
 
 async function savePlaylistMeta(data = {}, config = {}) {

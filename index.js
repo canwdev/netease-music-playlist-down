@@ -28,6 +28,7 @@ let {
   metaFileName,
 } = require('./config')
 const path = require('path')
+const {getPlaylistData} = require('./utils/meta')
 
 async function batchDownload(tracks, config = {}) {
   const {
@@ -141,6 +142,13 @@ async function run() {
   }
 
   try {
+    // const {
+    //   playListData,
+    //   songDetailListData,
+    // } = await getPlaylistData(playlistIDNumber, {
+    //   metaDataPath,
+    // })
+
     const {data: playListData} = await axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistIDNumber}`)
 
     // 歌单名称
