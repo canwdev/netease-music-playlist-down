@@ -1,6 +1,6 @@
 const axios = require('axios')
 const Path = require('path')
-const fs = require('fs')
+const Fs = require('fs')
 const ID3Writer = require('browser-id3-writer');
 const inquirer = require("inquirer")
 const {
@@ -18,8 +18,8 @@ const sanitize = (input) => sanitizeFilename(input, {replacement: '_'})
 function createDownloadDir({distDirBase = __dirname, playlistName}) {
   // 创建下载目录
   const distDir = Path.join(distDirBase, sanitize(playlistName))
-  if (!fs.existsSync(distDir)) {
-    fs.mkdirSync(distDir, {recursive: true});
+  if (!Fs.existsSync(distDir)) {
+    Fs.mkdirSync(distDir, {recursive: true});
   }
   return distDir
 }
@@ -132,7 +132,7 @@ function replaceFileExtension(oPath, extension) {
  * @returns {Promise<string>}
  */
 async function inquireConfigFile(message = '选择一个配置文件', baseDir) {
-  const files = fs.readdirSync(baseDir, {withFileTypes: true}).filter(dirent => dirent.isFile())
+  const files = Fs.readdirSync(baseDir, {withFileTypes: true}).filter(dirent => dirent.isFile())
     .map(dirent => dirent.name)
 
   const answers = await inquirer.prompt([
@@ -214,7 +214,7 @@ function doSleep(time = 300) {
 }
 
 function writeTextSync(pth, str) {
-  return fs.writeFileSync(pth, str, {
+  return Fs.writeFileSync(pth, str, {
     encoding: 'utf8'
   })
 }
@@ -222,14 +222,14 @@ function writeTextSync(pth, str) {
 
 function initCustomerConfig(savePath) {
   const downloadDir = Path.dirname(savePath)
-  if (!fs.existsSync(downloadDir)) {
-    fs.mkdirSync(downloadDir, {recursive: true});
+  if (!Fs.existsSync(downloadDir)) {
+    Fs.mkdirSync(downloadDir, {recursive: true});
   }
   let customerConfig = {
     playlistID: null
   }
-  if (!fs.existsSync(savePath)) {
-    fs.writeFileSync(savePath, JSON.stringify(customerConfig), {encoding: 'utf8'})
+  if (!Fs.existsSync(savePath)) {
+    Fs.writeFileSync(savePath, JSON.stringify(customerConfig), {encoding: 'utf8'})
   } else {
     customerConfig = require(savePath)
   }

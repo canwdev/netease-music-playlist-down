@@ -1,10 +1,10 @@
-const fs = require('fs')
+const Fs = require('fs')
 const Path = require('path')
 const {
   writeTextSync
 } = require('./index')
 const axios = require('axios')
-const {apiBaseUrl} = require('../config')
+const service = require('./service')
 
 async function getPlaylistData(playlistIDNumber, config = {}) {
   const {
@@ -12,13 +12,13 @@ async function getPlaylistData(playlistIDNumber, config = {}) {
     isGetDetail = false,
     metaFileName = 'meta.json'
   } = config
-  if (!fs.existsSync(basePath)) {
-    fs.mkdirSync(basePath, {recursive: true})
+  if (!Fs.existsSync(basePath)) {
+    Fs.mkdirSync(basePath, {recursive: true})
   }
   let metaBasePath = Path.join(basePath, playlistIDNumber.toString())
 
   // 查找设置输出目录（如果存在）
-  const folders = fs.readdirSync(basePath)
+  const folders = Fs.readdirSync(basePath)
   const folder = folders.find(item => item.includes(playlistIDNumber))
   if (folder) {
     metaBasePath = Path.join(basePath, folder)
@@ -33,7 +33,7 @@ async function getPlaylistData(playlistIDNumber, config = {}) {
   }
 
   // 如果已保存元数据，则不请求接口
-  if (fs.existsSync(metaFilePath)) {
+  if (Fs.existsSync(metaFilePath)) {
     const data = require(metaFilePath)
     console.log('✅ 从本地读取歌单成功！')
     return {
@@ -43,7 +43,7 @@ async function getPlaylistData(playlistIDNumber, config = {}) {
   }
 
   console.log('🛸 获取歌单...')
-  const {data: playListData} = await axios.get(`${apiBaseUrl}/playlist/detail?id=${playlistIDNumber}`)
+  const {data: playListData} = await service.get(`/playlist/detail?id=${playlistIDNumber}`)
   const {name: playlistName, trackIds} = playListData.playlist
 
   console.log(`✅ 歌单获取成功！《${playlistName}》\n`)
@@ -52,7 +52,7 @@ async function getPlaylistData(playlistIDNumber, config = {}) {
 
   if (isGetDetail) {
     console.log('🛸 获取歌曲列表详情...')
-    const {data: songDetailListData} = await axios.get(`${apiBaseUrl}/song/detail?ids=${trackIds.map(item => item.id).join(',')}`)
+    const {data: songDetailListData} = await service.get(`/song/detail?ids=${trackIds.map(item => item.id).join(',')}`)
     console.log('✅ 获取歌曲列表详情成功！')
 
     retObj.songDetailListData = songDetailListData
@@ -64,9 +64,8 @@ async function getPlaylistData(playlistIDNumber, config = {}) {
 async function savePlaylistMeta(data = {}, config = {}) {
   const {
     playListData = {},
-    songDetailListData = {},
+    songs = [],
   } = data
-  const {songs} = songDetailListData
   const {
     arrangeDistDir,
     metaFileName,
@@ -74,7 +73,7 @@ async function savePlaylistMeta(data = {}, config = {}) {
 
   // 保存 meta 信息
   const metaDataPath = Path.join(arrangeDistDir, metaFileName)
-  if (fs.existsSync(metaDataPath)) {
+  if (Fs.existsSync(metaDataPath)) {
     console.log('meta 数据已存在，跳过保存！')
     return
   }
@@ -95,7 +94,7 @@ async function savePlaylistMeta(data = {}, config = {}) {
       const {data} = await axios.get(coverUrl, {
         responseType: 'arraybuffer'
       })
-      fs.writeFileSync(coverPath, Buffer.from(data))
+      Fs.writeFileSync(coverPath, Buffer.from(data))
     }
     hasCover = true
     console.log('✅ 下载封面图成功！')
@@ -105,20 +104,39 @@ async function savePlaylistMeta(data = {}, config = {}) {
 
   // README File
   const readmePath = Path.join(arrangeDistDir, 'README.md')
+
   let coverText = ``
   if (hasCover) {
-    coverText = `<img src="./${coverName}" height="256"/>\n\n`
+    coverText = `<img src="./${coverName}" alt="歌单封面" height="256"/>`
   }
-  const {creator} = playlist
-  const infoText = `歌单id：[${playlist.id}](https://music.163.com/#/playlist?id=${playlist.id})\n创建者：[${creator.nickname}](https://music.163.com/#/user/home?id=${creator.userId})\n标签：「${(playlist.tags || []).join('、')}」\n数量：${playlist.trackCount}\n`
 
-  const songListText = songs.reduce((prev, item) => {
+  const {creator} = playlist
+  let infoText = [
+    `- 歌单名称：${playlist.name}`,
+    `- 歌单ID：[${playlist.id}](https://music.163.com/#/playlist?id=${playlist.id})`,
+    `- 创建者：[${creator.nickname}](https://music.163.com/#/user/home?id=${creator.userId})`,
+    `- 标签：${(playlist.tags || []).join('，')}`,
+    `- 数量：${playlist.trackCount}`
+  ].join('\n')
+
+  const songListText = songs.reduce((prev, item, currentIndex) => {
     const singers = (item.ar || []).map(v => v.name).join(',')
-    return prev + `1. [${singers} - ${item.name}](https://music.163.com/#/song?id=${item.id})\n`
+    return prev + `${currentIndex + 1}. [${singers} - ${item.name}](https://music.163.com/#/song?id=${item.id})\n`
   }, '')
 
-  const readmeContents = `# ${playlist.name}\n\n${coverText}${infoText}## 简介\n${playlist.description}\n\n## 播放列表\n${songListText}\n`
+  const readmeContents = [
+    `# ${playlist.name}`,
+    coverText,
+    infoText,
+    `## 歌单描述`,
+    playlist.description,
+    `## 歌曲列表`,
+    songListText,
+    ''
+  ].join('\n\n')
+
   writeTextSync(readmePath, readmeContents)
+  console.log('✅ 保存 README 成功！', readmePath)
 }
 
 module.exports = {

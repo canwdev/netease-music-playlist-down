@@ -8,7 +8,6 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 const fs = require('fs')
 const Path = require('path')
 const shell = require('shelljs')
-const axios = require('axios')
 const {
   sanitize,
   padZero,
@@ -42,7 +41,7 @@ async function initBasic() {
   localConfig.playlistIDNumber = parseNcmPlaylistId(urlOrId)
   if (!localConfig.playlistIDNumber) {
     console.log('Exit')
-    return
+
   }
 }
 
@@ -190,7 +189,7 @@ async function main() {
 
   await savePlaylistMeta({
     playListData,
-    songDetailListData,
+    songs: songDetailListData.songs,
   }, localConfig)
 
   console.log('Done')
