@@ -134,7 +134,7 @@ async function arrangeFile(songs) {
 
   console.log('----------------------')
   if (copyFailedItems.length > 0) {
-    console.log(`警告：有 ${copyFailedItems.length} 个匹配失败，请尝试手动移动或修改源码 :)`)
+    console.log(`警告：${copyFailedItems.length} 个匹配失败，请尝试手动移动或修改源码 :)`)
     console.log(copyFailedItems)
   } else {
     console.log(`全部歌曲移动成功！`)

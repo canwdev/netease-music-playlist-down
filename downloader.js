@@ -60,7 +60,7 @@ async function batchDownload(tracks, config = {}) {
       } else {
 
         // 获取下载地址
-        console.log(`\n🛸 ${statusText}正在获取歌曲《${name}》信息，id=${id}`)
+        console.log(`\n🛸 ${statusText}正在获取歌曲《${name}》，id=${id}`)
         const downInfo = await getSongDownloadInfo(song.id)
 
         // 下载
@@ -85,7 +85,7 @@ async function batchDownload(tracks, config = {}) {
     }
     // break
   }
-  console.log(`\n\n🆗 执行结束！有 ${succeed.length} 个音乐下载成功。`)
+  console.log(`\n\n🆗 执行结束！${succeed.length} 个音乐下载成功。`)
 
   if (errored.length > 0) {
     console.log(`\n\n⚠ 其中，${errored.length} 个音乐下载失败：`)
