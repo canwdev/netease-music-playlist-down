@@ -1,7 +1,7 @@
 /node_modules/
 .idea
-./dist
-./download
+/dist/
+/download/
 /server/
 
 liumingye-config
