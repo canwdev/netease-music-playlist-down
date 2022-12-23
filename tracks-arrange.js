@@ -19,7 +19,6 @@ const {
 
 const {
   downloadCustomerConfigPath,
-  apiBaseUrl,
   playlistID,
   metaFileName,
   isDebug,
