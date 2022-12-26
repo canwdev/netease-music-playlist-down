@@ -13,18 +13,21 @@
 4. `yarn` 安装依赖。
 5. `node index.js` 开始命令行下载交互程序。
 
-## 2. 自动整理 NeteaseCloudMusic PC客户端下载的歌曲（根据歌单序号自动排序）
+## 2. 自动排序PC客户端下载的歌单
 
-提示：使用客户端下载后的加密音乐文件可以通过 [.ncm unlock](https://demo.unlock-music.dev/) 工具解
+1. 一次只能对一个歌单进行排序
 
-- [效果截图](./tracks-arrange-demo.gif)
-
-1. 打开 tracks-arrange.js，修改参数：
+2. 打开 tracks-arrange.js，修改参数：
 
    ```
    fromDir: 'D:\\CloudMusic\\', // NeteaseCloudMusicPC客户端下载文件夹
    toDir: 'D:\\CloudMusicArranged\\', // 目标文件夹
    ```
 
-2. `node tracks-arrange.js`
+3. `node tracks-arrange.js`
 
+4. [效果截图](./tracks-arrange-demo.gif)
+
+---
+
+- 提示：使用客户端下载后的加密音乐文件可以通过 [.ncm unlock](https://demo.unlock-music.dev/) 工具解密

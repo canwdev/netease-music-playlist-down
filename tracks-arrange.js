@@ -5,7 +5,7 @@
  * 从 https://github.com/Binaryify/NeteaseCloudMusicApi 获取的歌单详情json
  */
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
-const fs = require('fs')
+const Fs = require('fs')
 const Path = require('path')
 const shell = require('shelljs')
 const {
@@ -26,21 +26,22 @@ const {
 const {savePlaylistMeta, getPlaylistData} = require('./utils/meta')
 
 const localConfig = {
-  fromDir: 'D:\\CloudMusic\\VipSongsDownload', //  NeteaseCloudMusic PC客户端下载文件夹
+  fromDir: 'D:\\CloudMusic', //  NeteaseCloudMusic PC客户端下载文件夹
   toDir: 'D:\\CloudMusicArranged', // 目标文件夹
   metaFileName,
   arrangeDistDir: null,
   playlistIDNumber: null
 }
 
-async function initBasic() {
-  console.log('欢迎使用 自动整理 NeteaseCloudMusic PC客户端下载的歌曲！')
+async function initConfig() {
+  console.log('欢迎使用PC客户端下载的歌曲【自动整理工具】！')
   const customerConfig = initCustomerConfig(downloadCustomerConfigPath)
+  localConfig.fromDir = await inquireInputString('源目录：', localConfig.fromDir)
+  localConfig.toDir = await inquireInputString('输出基础目录：', localConfig.toDir)
   const urlOrId = await inquireInputString('请输入歌单链接或id（歌单->分享->复制链接）', customerConfig.playlistID || playlistID)
   localConfig.playlistIDNumber = parseNcmPlaylistId(urlOrId)
   if (!localConfig.playlistIDNumber) {
     console.log('Exit')
-
   }
 }
 
@@ -118,7 +119,7 @@ async function arrangeFile(songs) {
     } else {
       copiedFiles[fromName] = true
       const targetPath = Path.join(localConfig.arrangeDistDir, targetName)
-      if (!fs.existsSync(targetPath)) {
+      if (!Fs.existsSync(targetPath)) {
         console.log(`移动：【${fromName}】 -> 【${targetName}】`)
         shell.mv(Path.join(localConfig.fromDir, fromName), targetPath)
         copySucceedItems.push(fromName)
@@ -161,7 +162,7 @@ async function arrangeFile(songs) {
 }
 
 async function main() {
-  await initBasic()
+  await initConfig()
 
   const {
     metaBasePath,
@@ -175,11 +176,11 @@ async function main() {
   localConfig.arrangeDistDir = metaBasePath
 
   // 仅当文件夹不存在时执行初始化输出目录
-  if (!fs.existsSync(localConfig.arrangeDistDir)) {
+  if (!Fs.existsSync(localConfig.arrangeDistDir)) {
     const {playlist} = playListData
     const dirName = `${sanitize(playlist.name)}__${playlist.id}`
     localConfig.arrangeDistDir = Path.join(localConfig.toDir, dirName)
-    fs.mkdirSync(localConfig.arrangeDistDir, {recursive: true})
+    Fs.mkdirSync(localConfig.arrangeDistDir, {recursive: true})
     console.log('✅ 创建输出目录成功，目录名：', dirName)
   }
 
