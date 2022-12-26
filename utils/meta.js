@@ -43,7 +43,7 @@ async function getPlaylistData(playlistIDNumber, config = {}) {
   }
 
   console.log('🛸 获取歌单...')
-  const {data: playListData} = await service.get(`/playlist/detail?id=${playlistIDNumber}`)
+  const playListData = await service.get(`/playlist/detail?id=${playlistIDNumber}`)
   const {name: playlistName, trackIds} = playListData.playlist
 
   console.log(`✅ 歌单获取成功！《${playlistName}》\n`)
@@ -52,7 +52,7 @@ async function getPlaylistData(playlistIDNumber, config = {}) {
 
   if (isGetDetail) {
     console.log('🛸 获取歌曲列表详情...')
-    const {data: songDetailListData} = await service.get(`/song/detail?ids=${trackIds.map(item => item.id).join(',')}`)
+    const songDetailListData = await service.get(`/song/detail?ids=${trackIds.map(item => item.id).join(',')}`)
     console.log('✅ 获取歌曲列表详情成功！')
 
     retObj.songDetailListData = songDetailListData

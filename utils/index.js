@@ -206,10 +206,10 @@ function parseNcmPlaylistId(urlOrId) {
   return obj.id
 }
 
-function doSleep(time = 300) {
-  console.log('休息一下~ ', time)
+function doSleep(ms = 300) {
+  console.log('休息一下~ ', ms)
   return new Promise(resolve => {
-    setTimeout(resolve, time)
+    setTimeout(resolve, ms)
   })
 }
 

@@ -2,7 +2,7 @@
  批量下载NeteaseCloudMusic歌单中的音乐
  */
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
-const fs = require('fs')
+const Fs = require('fs')
 const Path = require('path')
 const service = require('./utils/service')
 
@@ -52,9 +52,9 @@ async function batchDownload(tracks, config = {}) {
     const songErroredPath = songSavePath + '.errored.json'
 
     try {
-      if (fs.existsSync(songSavePath)) {
-        if (fs.existsSync(songErroredPath)) {
-          fs.unlinkSync(songErroredPath)
+      if (Fs.existsSync(songSavePath)) {
+        if (Fs.existsSync(songErroredPath)) {
+          Fs.unlinkSync(songErroredPath)
         }
         isDebug && console.log(`${statusText}已存在同名文件，跳过（${songSavePath}）`)
       } else {
@@ -72,7 +72,7 @@ async function batchDownload(tracks, config = {}) {
           name,
           ar
         })
-        fs.writeFileSync(songSavePath, Buffer.from(buffer))
+        Fs.writeFileSync(songSavePath, Buffer.from(buffer))
         console.log('✅ 已下载', songSavePath)
       }
       succeed.push(song)
@@ -80,7 +80,7 @@ async function batchDownload(tracks, config = {}) {
     } catch (e) {
       console.log(`${statusText}Error!`, e)
       // 下载出错时，保存信息以便查看
-      fs.writeFileSync(songErroredPath, JSON.stringify(song), {encoding: 'utf8'})
+      Fs.writeFileSync(songErroredPath, JSON.stringify(song), {encoding: 'utf8'})
       errored.push(song)
     }
     // break
@@ -103,17 +103,16 @@ async function batchDownload(tracks, config = {}) {
  */
 async function getSongDownloadInfo(id) {
   try {
-    const musicAvailableRes = await service.get('/check/music?id=' + id)
+    const available = await service.get('/check/music?id=' + id)
     const requestLinkUrl = '/song/url?br=320000&id=' + id // 最高320kbps MP3
 
-    const songUrlRes = await service.get(requestLinkUrl)
+    const musicUrlData = await service.get(requestLinkUrl)
 
-    const available = musicAvailableRes.data
-    const musicUrl = songUrlRes.data.data[0]
-    // console.log({
-    //   available,
-    //   musicUrl
-    // })
+    const musicUrl = musicUrlData.data[0]
+    console.log({
+      available,
+      musicUrl
+    })
 
     if (!available.success) {
       console.error(available.message)
