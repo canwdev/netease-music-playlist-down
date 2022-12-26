@@ -38,7 +38,7 @@ async function getPlaylistData(playlistIDNumber, config = {}) {
     console.log('✅ 从本地读取歌单成功！')
     return {
       ...retObj,
-      ...data,
+      songDetailListData: data,
     }
   }
 

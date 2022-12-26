@@ -26,7 +26,7 @@ const {
 const {savePlaylistMeta, getPlaylistData} = require('./utils/meta')
 
 const localConfig = {
-  fromDir: 'D:\\CloudMusic', //  NeteaseCloudMusic PC客户端下载文件夹
+  fromDir: 'D:\\CloudMusic\\VipSongsDownload', //  NeteaseCloudMusic PC客户端下载文件夹
   toDir: 'D:\\CloudMusicArranged', // 目标文件夹
   metaFileName,
   arrangeDistDir: null,
