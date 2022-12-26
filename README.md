@@ -1,18 +1,19 @@
 # NeteaseCloudMusic 歌单工具
 
 - 基于 Node.js 和 [NeteaseCloudMusicApi](https://binaryify.github.io/NeteaseCloudMusicApi)
-- 仅供交流学习使用，严禁商业用途!!
-- 版权限制的音乐无法下载（
+- 仅供学习使用，严禁商业用途
+- 注意：版权限制的音乐无法下载（
 
-## 歌单下载
+## 1. CLI交互程序
 
-0. 安装 Node.js
-1. 打开 [config.js](./config.js)，修改参数：
-   - `apiBaseUrl`：你自己搭建的 [NeteaseCloudMusicApi](https://binaryify.github.io/NeteaseCloudMusicApi) 服务地址。
-2. `yarn` 安装依赖。
-3. `node index.js` 开始下载。
+1. 安装 Node.js
+2. 在 server 目录下载 [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) 并启动
+3. 打开 [config.js](./config.js)，修改参数：
+   - `apiBaseUrl`：你自己搭建的 NeteaseCloudMusicApi 服务地址。
+4. `yarn` 安装依赖。
+5. `node index.js` 开始命令行下载交互程序。
 
-## 自动整理 NeteaseCloudMusic PC客户端下载的歌曲（根据歌单序号自动排序）
+## 2. 自动整理 NeteaseCloudMusic PC客户端下载的歌曲（根据歌单序号自动排序）
 
 提示：使用客户端下载后的加密音乐文件可以通过 [.ncm unlock](https://demo.unlock-music.dev/) 工具解
 

@@ -109,10 +109,10 @@ async function getSongDownloadInfo(id) {
     const musicUrlData = await service.get(requestLinkUrl)
 
     const musicUrl = musicUrlData.data[0]
-    console.log({
-      available,
-      musicUrl
-    })
+    // console.log({
+    //   available,
+    //   musicUrl
+    // })
 
     if (!available.success) {
       console.error(available.message)
@@ -149,14 +149,14 @@ async function run() {
     // })
 
     // 说明 : 歌单能看到歌单名字, 但看不到具体歌单内容 , 调用此接口 , 传入歌单 id, 可 以获取对应歌单内的所有的音乐(未登录状态只能获取不完整的歌单,登录后是完整的)，但是返回的 trackIds 是完整的，tracks 则是不完整的
-    const {data: playListData} = await service.get(`/playlist/detail?id=${playlistIDNumber}`)
+    const playListData = await service.get(`/playlist/detail?id=${playlistIDNumber}`)
 
     // 歌单名称
     const {name: playlistName} = playListData.playlist
     console.log(`✅ 歌单获取成功！《${playlistName}》\n`)
 
     // 说明 : 由于网易云接口限制，歌单详情只会提供 10 首歌，通过调用此接口，传入对应的歌单id，即可获得对应的所有歌曲
-    const {data: {songs}} = await service.get(`/playlist/track/all?id=${playlistIDNumber}`)
+    const {songs} = await service.get(`/playlist/track/all?id=${playlistIDNumber}`)
 
     // 创建下载文件夹和meta
     const distDir = createDownloadDir({
